@@ -1,0 +1,7 @@
+db:
+  host: postgres.test-db.svc.cluster.local #<tên-service>.<namespace>.svc.cluster.local
+  name: test
+bootstrap:
+  enabled: true
+migration:
+  serviceSchema: test
