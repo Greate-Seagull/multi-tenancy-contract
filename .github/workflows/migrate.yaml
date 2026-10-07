@@ -6,7 +6,7 @@ on:
       migration_path: { type: string, required: true }
       contract-ref: { type: string, default: v1.0.0 } # Ghim phiên bản
       runs-on: { type: string, default: ubuntu-latest } # Truyền runner
-    secrets:
+#    secrets:
 
 env:
   BOOT_IMAGE: ghcr.io/greate-seagull/db-bootstrap
