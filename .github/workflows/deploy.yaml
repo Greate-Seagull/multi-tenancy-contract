@@ -1,0 +1,37 @@
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push bootstrap
+        uses: docker/build-push-action@v6
+        with:
+          context: contract/bootstrap
+          push: true
+          tags: ghcr.io/greate-seagull/tenant-bootstrap:${{ github.ref_name }}
+          cache-from: type=gha,scope=bootstrap
+          cache-to: type=gha,scope=bootstrap,mode=max
+
+      - name: Build & push migration
+        uses: docker/build-push-action@v6
+        with:
+          context: contract/migration-base
+          push: true
+          tags: ghcr.io/greate-seagull/tenant-migration:${{ github.ref_name }}
+          cache-from: type=gha,scope=migration
+          cache-to: type=gha,scope=migration,mode=max
