@@ -1,0 +1,8 @@
+db:
+  host: pg-prod.internal          # đổi theo hạ tầng thật
+  name: test
+bootstrap:
+  enabled: false                  # DBA/Terraform đã tạo DB + role
+migration:
+  serviceSchema: "test"
+# Secret tenant-db-migrator và tenant-db-app (key username/password) do Vault/ESO cấp
