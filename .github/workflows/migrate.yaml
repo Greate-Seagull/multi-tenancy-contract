@@ -4,19 +4,13 @@ on:
   workflow_call:
     inputs:
       migration_path: { type: string, required: true }
-
-      service-name: { type: string, required: true } # Tránh hardcode tên service
-      contract-ref: { type: string, default: v1 } # Ghim phiên bản
-      environment: { type: string, required: true } # Tránh hardcode tên môi trường
-      values-file: { type: string, required: false } # Truyền file values
+      contract-ref: { type: string, default: v1.0.0 } # Ghim phiên bản
       runs-on: { type: string, default: ubuntu-latest } # Truyền runner
     secrets:
-      KUBE_CONFIG: { required: true }
-      DB_PASSWORD: { required: true }
 
 env:
-  BOOT_IMAGE: ghcr.io/hungvers/db-bootstrap
-  BASE_MIGRATION_IMAGE: ghcr.io/hungvers/db-bootstrap
+  BOOT_IMAGE: ghcr.io/greate-seagull/db-bootstrap
+  BASE_MIGRATION_IMAGE: ghcr.io/greate-seagull/db-migration
   SERVICE_MIGRATION_IMAGE: ghcr.io/${{ github.repository }}/db-migration
 
 jobs:
@@ -25,7 +19,7 @@ jobs:
     permissions: { contents: read, packages: write }
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
-      image: ${{ env.MIGRATION_IMAGE }}
+      image: ${{ env.SERVICE_MIGRATION_IMAGE }}
     steps:
       - name: Checkout caller repo (migrations)
         uses: actions/checkout@v4
@@ -33,7 +27,7 @@ jobs:
       - name: Checkout contract repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.contract-repository }} # Điền tên repo thật
+          repository: https://github.com/Greate-Seagull/multi-tenancy-contract
           ref: ${{ inputs.contract-ref }}
           path: .contract
 
@@ -64,53 +58,53 @@ jobs:
           context: ${{ inputs.migration-path }}
           file: .contract/contract/migration-service/Dockerfile
           build-args: |
-            CONTRACT_IMAGE=${{ env.CONTRACT_IMAGE }}:${{ inputs.contract-ref }}
+            CONTRACT_IMAGE=${{ env.BASE_MIGRATION_IMAGE }}:${{ inputs.contract-ref }}
           push: true
-          tags: ${{ env.MIGRATION_IMAGE }}:${{ steps.meta.outputs.tag }}
+          tags: ${{ env.SERVICE_MIGRATION_IMAGE }}:${{ steps.meta.outputs.tag }}
           cache-from: type=gha,scope=migration
           cache-to: type=gha,scope=migration,mode=max
 
-  deploy-test:
-    needs: build
-    runs-on: ${{ inputs.runs-on }}
-    steps:
-      - uses: helm/kind-action@v1
-        with: { cluster_name: test, kubectl_version: v1.31.0 }
-
-      - name: Deploy
-        env:
-          DB_ADMIN_PASSWORD: ${{ secrets.DB_ADMIN_PASSWORD }}
-          MIGRATOR_PASSWORD: ${{ secrets.MIGRATOR_PASSWORD }}
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
-        run: |
-          cp ~/.kube/config "$RUNNER_TEMP/kubeconfig"; chmod 644 "$RUNNER_TEMP/kubeconfig"
-          docker run --rm --network host \
-            -v "$RUNNER_TEMP/kubeconfig:/home/deployer/.kube/config:ro" \
-            -v "$PWD/${{ inputs.chart-dir }}:/opt/deploy/charts:ro" \
-            -v "$PWD/${{ inputs.values-file }}:/opt/deploy/values.yaml:ro" \
-            -v "$PWD/${{ inputs.db-file }}:/opt/deploy/postgres.yaml:ro" \
-            -e DB_ADMIN_PASSWORD -e MIGRATOR_PASSWORD -e APP_PASSWORD \
-            -e NS=${{ inputs.ns }} -e DB_NS=${{ inputs.db-ns }} \
-            -e IMAGE=${{ inputs.image }} -e TAG=${{ inputs.tag }} \
-            "${{ inputs.deployer-image }}" test
+#  deploy-test:
+#    needs: build
+#    runs-on: ${{ inputs.runs-on }}
+#    steps:
+#      - uses: helm/kind-action@v1
+#        with: { cluster_name: test, kubectl_version: v1.31.0 }
+#
+#      - name: Deploy
+#        env:
+#          DB_ADMIN_PASSWORD: ${{ secrets.DB_ADMIN_PASSWORD }}
+#          MIGRATOR_PASSWORD: ${{ secrets.MIGRATOR_PASSWORD }}
+#          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+#        run: |
+#          cp ~/.kube/config "$RUNNER_TEMP/kubeconfig"; chmod 644 "$RUNNER_TEMP/kubeconfig"
+#          docker run --rm --network host \
+#            -v "$RUNNER_TEMP/kubeconfig:/home/deployer/.kube/config:ro" \
+#            -v "$PWD/${{ inputs.chart-dir }}:/opt/deploy/charts:ro" \
+#            -v "$PWD/${{ inputs.values-file }}:/opt/deploy/values.yaml:ro" \
+#            -v "$PWD/${{ inputs.db-file }}:/opt/deploy/postgres.yaml:ro" \
+#            -e DB_ADMIN_PASSWORD -e MIGRATOR_PASSWORD -e APP_PASSWORD \
+#            -e NS=${{ inputs.ns }} -e DB_NS=${{ inputs.db-ns }} \
+#            -e IMAGE=${{ inputs.image }} -e TAG=${{ inputs.tag }} \
+#            "${{ inputs.deployer-image }}" test
 
       # - name: Deploy app   (helm upgrade app chart ở đây, SAU bước Migrate)
 
-  deploy-prod:
-    needs: [build, deploy-test]
-    runs-on: ubuntu-latest
-    environment: production         # bật Required reviewers trong GitHub để có bước duyệt
-    steps:
-      - uses: actions/checkout@v4
-      - name: Kubeconfig
-        env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
-      # prod: không tạo Postgres, không tạo secret (do Vault/ESO cấp), bootstrap.enabled=false
-      - name: Migrate
-        env:
-          TAG: ${{ needs.build.outputs.tag }}
-        run: deploy/migrate-database.sh prod
+#  deploy-prod:
+#    needs: [build, deploy-test]
+#    runs-on: ubuntu-latest
+#    environment: production         # bật Required reviewers trong GitHub để có bước duyệt
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Kubeconfig
+#        env:
+#          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+#        run: |
+#          mkdir -p ~/.kube
+#          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+#          chmod 600 ~/.kube/config
+#      # prod: không tạo Postgres, không tạo secret (do Vault/ESO cấp), bootstrap.enabled=false
+#      - name: Migrate
+#        env:
+#          TAG: ${{ needs.build.outputs.tag }}
+#        run: deploy/migrate-database.sh prod

@@ -1,0 +1,27 @@
+name: Test reusable migrate
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/migrate.yaml'
+      - '.github/workflows/test-migrate.yaml'
+  workflow_dispatch:
+
+jobs:
+  default-ref:
+    uses: ./.github/workflows/tenant-contract-migrate.yml
+    with:
+      migration_path: test/resources/migrations
+
+  pinned-ref:
+    uses: ./.github/workflows/tenant-contract-migrate.yml
+    with:
+      migration_path: test/resources/migrations
+      contract-ref: v1.0.0
+
+  custom-runner:
+    uses: ./.github/workflows/tenant-contract-migrate.yml
+    with:
+      migration_path: test/resources/migrations
+      runs-on: ubuntu-24.04
