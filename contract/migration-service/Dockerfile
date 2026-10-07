@@ -1,0 +1,3 @@
+ARG CONTRACT_IMAGE
+FROM ${CONTRACT_IMAGE}
+COPY . /flyway/sql/service/

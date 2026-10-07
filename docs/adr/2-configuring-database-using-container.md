@@ -1,8 +1,0 @@
-- Bối cảnh: 
-- Quyết định: Dùng image chứa các file sql và container thực hiện cấu hình database.
-- Lý do:
-  - Ít lỗi hơn so với nhúng trực tiếp vào yaml.
-  - Sử dụng lại cùng image cho testconainters và các service khác.
-- Trade-off:
-  - Phải có pipeline build, push và registry.
-  - Image nặng và triển khai lâu hơn.
