@@ -1,0 +1,32 @@
+{{- if .Values.bootstrap.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-bootstrap
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: bootstrap
+          image: {{ required "bootstrap.image is required when bootstrap.enabled=true" .Values.bootstrap.image }}
+          env:
+            - { name: DB_HOST, value: {{ .Values.db.host | quote }} }
+            - { name: DB_PORT, value: {{ .Values.db.port | quote }} }
+            - { name: DB_NAME, value: {{ .Values.db.name | quote }} }
+            {{- include "migrate.secretEnv" (dict "root" . "role" "admin" "env" "ADMIN_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "admin" "env" "ADMIN_PASSWORD" "key" "password") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "migrator" "env" "MIGRATOR_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "migrator" "env" "MIGRATOR_PASSWORD" "key" "password") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "app" "env" "APP_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "app" "env" "APP_PASSWORD" "key" "password") | nindent 12 }}
+{{- end }}

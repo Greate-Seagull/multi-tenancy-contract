@@ -1,0 +1,15 @@
+imagePullSecrets: []
+
+db:
+  host: ""
+  port: 5432
+  name: ""
+
+bootstrap:
+  enabled: true
+  image: ""
+
+migration:
+  image: ""
+  contractSchema: platform
+  serviceSchema: ""

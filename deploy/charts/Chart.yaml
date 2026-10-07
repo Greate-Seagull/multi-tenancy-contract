@@ -1,0 +1,4 @@
+apiVersion: v2
+name: db-migrate
+description: Bootstrap DB + migrate (platform + service) bằng K8s Job
+version: 0.1.0
