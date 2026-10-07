@@ -8,6 +8,10 @@ on:
       - '.github/workflows/test-migrate.yaml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   default-ref:
     uses: ./.github/workflows/migrate.yaml
