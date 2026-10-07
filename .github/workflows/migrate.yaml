@@ -27,7 +27,7 @@ jobs:
       - name: Checkout contract repo
         uses: actions/checkout@v4
         with:
-          repository: https://github.com/Greate-Seagull/multi-tenancy-contract
+          repository: Greate-Seagull/multi-tenancy-contract # Chỉ nhận dạng <owner>/<repo>
           ref: ${{ inputs.contract-ref }}
           path: .contract
 
