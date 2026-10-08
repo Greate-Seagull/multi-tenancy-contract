@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/migrate.yaml
     with:
       migration-path: test/resources/migrations
-      contract-ref: v1.0.0
+      contract-ref: v1.0.2
 
   custom-runner:
     uses: ./.github/workflows/migrate.yaml

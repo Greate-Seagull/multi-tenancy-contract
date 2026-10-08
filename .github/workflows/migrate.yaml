@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       migration-path: { type: string, required: true }
-      contract-ref:   { type: string, default: v1.0.0 }
+      contract-ref:   { type: string, default: v1.0.2 }
       runs-on:        { type: string, default: ubuntu-latest }
 
 jobs:
@@ -50,6 +50,10 @@ jobs:
 
       - name: Load image into kind
         run: kind load docker-image ${{ env.SERVICE_IMAGE }} --name test
+
+      - run: |
+        git -C .contract log -1 --oneline
+        ls -la .contract/test
 
       - name: Test deployment
         run: .contract/test/run.sh
