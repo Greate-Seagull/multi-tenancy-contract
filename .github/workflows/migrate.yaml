@@ -4,21 +4,19 @@ on:
   workflow_call:
     inputs:
       migration-path: { type: string, required: true }
-      contract-ref: { type: string, default: v1.0.0 } # Ghim phiên bản
-      runs-on: { type: string, default: ubuntu-latest } # Truyền runner
-#    secrets:
-
-env:
-  BOOT_IMAGE: ghcr.io/greate-seagull/db-bootstrap
-  BASE_MIGRATION_IMAGE: ghcr.io/greate-seagull/db-migration
+      contract-ref:   { type: string, default: v1.0.0 }
+      runs-on:        { type: string, default: ubuntu-latest }
 
 jobs:
-  build:
+  test:
     runs-on: ${{ inputs.runs-on }}
-    permissions: { contents: read, packages: write }
-    outputs:
-      tag: ${{ steps.meta.outputs.tag }}
-      image: ${{ env.SERVICE_MIGRATION_IMAGE }}
+    timeout-minutes: 20
+    permissions: { contents: read, packages: read }
+    env:
+      BOOT_IMAGE: ghcr.io/greate-seagull/tenant-bootstrap:${{ inputs.contract-ref }}
+      MIGRATION_IMAGE: ghcr.io/greate-seagull/tenant-migration:${{ inputs.contract-ref }}
+      TEST_IMAGE: ghcr.io/greate-seagull/tenant-test:${{ inputs.contract-ref }}
+      SERVICE_IMAGE: service-migration:${{ github.sha }}
     steps:
       - name: Checkout caller repo (migrations)
         uses: actions/checkout@v4
@@ -35,45 +33,32 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
-      - run: |
-          echo "migration_path='${{ inputs.migration_path }}'"
-          ls -la .contract/contract/migration-service
-
       - name: Build & load migration
         uses: docker/build-push-action@v6
         with:
           context: ${{ inputs.migration-path }}
           file: .contract/contract/migration-service/Dockerfile
           build-args: |
-            CONTRACT_IMAGE=${{ env.BASE_MIGRATION_IMAGE }}:${{ inputs.contract-ref }}
+            CONTRACT_IMAGE=${{ env.MIGRATION_IMAGE }}
           load: true
-          tags: service-migration:${{ github.sha }}
+          tags: ${{ env.SERVICE_IMAGE }}
           cache-from: type=gha,scope=migration
           cache-to: type=gha,scope=migration,mode=max
 
-#  deploy-test:
-#    needs: build
-#    runs-on: ${{ inputs.runs-on }}
-#    steps:
-#      - uses: helm/kind-action@v1
-#        with: { cluster_name: test, kubectl_version: v1.31.0 }
-#
-#      - name: Deploy
-#        env:
-#          DB_ADMIN_PASSWORD: ${{ secrets.DB_ADMIN_PASSWORD }}
-#          MIGRATOR_PASSWORD: ${{ secrets.MIGRATOR_PASSWORD }}
-#          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
-#        run: |
-#          cp ~/.kube/config "$RUNNER_TEMP/kubeconfig"; chmod 644 "$RUNNER_TEMP/kubeconfig"
-#          docker run --rm --network host \
-#            -v "$RUNNER_TEMP/kubeconfig:/home/deployer/.kube/config:ro" \
-#            -v "$PWD/${{ inputs.chart-dir }}:/opt/deploy/charts:ro" \
-#            -v "$PWD/${{ inputs.values-file }}:/opt/deploy/values.yaml:ro" \
-#            -v "$PWD/${{ inputs.db-file }}:/opt/deploy/postgres.yaml:ro" \
-#            -e DB_ADMIN_PASSWORD -e MIGRATOR_PASSWORD -e APP_PASSWORD \
-#            -e NS=${{ inputs.ns }} -e DB_NS=${{ inputs.db-ns }} \
-#            -e IMAGE=${{ inputs.image }} -e TAG=${{ inputs.tag }} \
-#            "${{ inputs.deployer-image }}" test
+      - uses: helm/kind-action@v1
+        with: { cluster_name: test, kubectl_version: v1.31.0 }
+
+      - name: Load image into kind
+        run: kind load docker-image ${{ env.SERVICE_IMAGE }} --name test
+
+      - name: Test deployment
+        run: .contract/test/deploy/run.sh
+
+      - name: Dump cluster state on failure
+        if: failure()
+        run: |
+          kubectl get pods -A
+          kubectl describe pods -A | tail -n 100
 
       # - name: Deploy app   (helm upgrade app chart ở đây, SAU bước Migrate)
 
