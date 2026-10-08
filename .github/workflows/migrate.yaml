@@ -52,7 +52,7 @@ jobs:
         run: kind load docker-image ${{ env.SERVICE_IMAGE }} --name test
 
       - name: Test deployment
-        run: .contract/test/deploy/run.sh
+        run: .contract/test/run.sh
 
       - name: Dump cluster state on failure
         if: failure()
