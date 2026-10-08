@@ -52,8 +52,8 @@ jobs:
         run: kind load docker-image ${{ env.SERVICE_IMAGE }} --name test
 
       - run: |
-        git -C .contract log -1 --oneline
-        ls -la .contract/test
+          git -C .contract log -1 --oneline
+          ls -la .contract/test
 
       - name: Test deployment
         run: .contract/test/run.sh
