@@ -19,7 +19,6 @@ export VALUES_FILE=$SCRIPT_DIR/values.yaml
 
 export BOOT_IMAGE=${BOOT_IMAGE:?}
 export IMAGE=${IMAGE:?}
-export TAG=${TAG:?}
 
 export LOCAL_CLUSTER=${LOCAL_CLUSTER:-ghcr}
 

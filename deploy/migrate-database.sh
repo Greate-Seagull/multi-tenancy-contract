@@ -4,7 +4,7 @@ CURRENT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CHART_DIR=${CHART_DIR:-"$CURRENT_DIR/charts"}
 
 ENVIRONMENT=${ENVIRONMENT:-test}
-: "${NS:?}" "${IMAGE:?}" "${TAG:?}"
+: "${NS:?}" "${IMAGE:?}"
 VALUES_FILE=${VALUES_FILE:-$CURRENT_DIR/$ENVIRONMENT/templates/values.yaml}
 
 RELEASE=${RELEASE:-$NS-migrate}
@@ -15,7 +15,7 @@ args=(
   -n "$NS"
 #  --create-namespace
   -f "$VALUES_FILE"
-  --set "migration.image=$IMAGE:$TAG"
+  --set "migration.image=$IMAGE"
   --wait
   --timeout "$TIMEOUT"
   --atomic
@@ -24,12 +24,12 @@ args=(
 )
 
 if [[ -n "${BOOT_IMAGE:-}" ]]; then
-  args+=(--set "bootstrap.image=$BOOT_IMAGE:$TAG")
+  args+=(--set "bootstrap.image=$BOOT_IMAGE")
 fi
 
 echo "Deploying $RELEASE to $NS ($ENVIRONMENT)"
-echo "  bootstrapping image:  $BOOT_IMAGE:$TAG"
-echo "  migrating image:  $IMAGE:$TAG"
+echo "  bootstrapping image:  $BOOT_IMAGE"
+echo "  migrating image:  $IMAGE"
 echo "  values: $VALUES_FILE"
 
 helm upgrade --install "$RELEASE" \
