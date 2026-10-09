@@ -1,0 +1,31 @@
+name: Test reusable migrate
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/migrate.yaml'
+      - '.github/workflows/test-migrate.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  default-ref:
+    uses: ./.github/workflows/migrate.yaml
+    with:
+      migration-path: test/resources/migrations
+
+  pinned-ref:
+    uses: ./.github/workflows/migrate.yaml
+    with:
+      migration-path: test/resources/migrations
+      contract-ref: v1.0.2
+
+  custom-runner:
+    uses: ./.github/workflows/migrate.yaml
+    with:
+      migration-path: test/resources/migrations
+      runs-on: ubuntu-24.04

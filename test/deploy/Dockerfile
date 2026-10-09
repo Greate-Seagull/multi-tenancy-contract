@@ -21,17 +21,16 @@ RUN apk add --no-cache \
 
 # Script và entrypoint cần 0755 (thực thi)
 COPY --chmod=0755 test/deploy/bootstrap/ /opt/deploy/scripts/
-COPY --chmod=0755 deploy/migrate-database.sh /opt/deploy/scripts/migrate-database.sh
 COPY --chmod=0755 test/deploy/entrypoint.sh /opt/deploy/entrypoint.sh
+COPY --chmod=0755 deploy/migrate-database.sh /opt/deploy/scripts/migrate-database.sh
 COPY --chmod=0755 deploy/charts/ /opt/deploy/charts/
 # File cấu hình và charts chỉ cần 0644 (đọc)
 COPY --chmod=0644 test/deploy/args/values.yaml /opt/deploy/scripts/values.yaml
 
 USER deployer
-WORKDIR /home/deployer
-
-# Đảm bảo kubectl/helm tìm thấy kubeconfig nếu được mount vào đây
-ENV KUBECONFIG=/home/deployer/.kube/config
+ENV HOME=/tmp \
+    KUBECONFIG=/home/deployer/.kube/config
+WORKDIR /tmp
 
 # Dùng tini làm PID 1 để xử lý tín hiệu và dọn dẹp tiến trình con
 ENTRYPOINT ["/sbin/tini", "--", "/opt/deploy/entrypoint.sh"]
