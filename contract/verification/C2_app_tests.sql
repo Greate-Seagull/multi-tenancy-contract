@@ -161,3 +161,38 @@ END IF;
 END IF;
 END $$;
 ROLLBACK;
+
+-- C20b. MERGE: không đè/xóa row tenant khác, không chèn/đổi sang tenant khác
+BEGIN;
+DO $$
+DECLARE ta constant text := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+        tb constant text := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+BEGIN
+  PERFORM set_config('app.tenant_id', ta, true);
+
+  PERFORM contract_test_c.expect_rows('C20b MERGE UPDATE row tenant khác',
+    'MERGE INTO contract_test_c.items t USING (VALUES (11)) AS s(id) ON t.id = s.id '
+    'WHEN MATCHED THEN UPDATE SET val = ''hacked''', 0);
+  PERFORM contract_test_c.expect_rows('C20b MERGE DELETE row tenant khác',
+    'MERGE INTO contract_test_c.items t USING (VALUES (11), (12)) AS s(id) ON t.id = s.id '
+    'WHEN MATCHED THEN DELETE', 0);
+  PERFORM contract_test_c.expect_rows('C20b MERGE UPDATE row của mình',
+    'MERGE INTO contract_test_c.items t USING (VALUES (1)) AS s(id) ON t.id = s.id '
+    'WHEN MATCHED THEN UPDATE SET val = ''mine''', 1);
+
+  PERFORM contract_test_c.expect_sqlstate('C20b MERGE INSERT sang tenant khác',
+    format('MERGE INTO contract_test_c.items t USING (VALUES (41)) AS s(id) ON t.id = s.id '
+           'WHEN NOT MATCHED THEN INSERT (id, tenant_id, val) VALUES (s.id, %L, ''x'')', tb), '42501');
+  PERFORM contract_test_c.expect_sqlstate('C20b MERGE đẩy row của mình sang tenant khác',
+    format('MERGE INTO contract_test_c.items t USING (VALUES (1)) AS s(id) ON t.id = s.id '
+           'WHEN MATCHED THEN UPDATE SET tenant_id = %L', tb), '42501');
+  PERFORM contract_test_c.expect_rows('C20b MERGE INSERT đúng tenant mình',
+    format('MERGE INTO contract_test_c.items t USING (VALUES (42)) AS s(id) ON t.id = s.id '
+           'WHEN NOT MATCHED THEN INSERT (id, tenant_id, val) VALUES (s.id, %L, ''ok'')', ta), 1);
+
+  PERFORM set_config('app.tenant_id', tb, true);   -- đối chứng: dữ liệu B nguyên vẹn
+  IF (SELECT count(*) FROM contract_test_c.items WHERE val = 'seed') <> 2 THEN
+    RAISE EXCEPTION '[C20b] dữ liệu tenant B bị thay đổi';
+END IF;
+END $$;
+ROLLBACK;

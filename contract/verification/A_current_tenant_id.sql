@@ -87,6 +87,25 @@ BEGIN
 END IF;
 END $$;
 
+-- A5b. RESET và DISCARD ALL đưa GUC về NULL (pool thường dùng DISCARD ALL khi trả connection)
+SET app.tenant_id = '33333333-3333-3333-3333-333333333333';
+RESET app.tenant_id;
+DO $$
+BEGIN
+  IF current_tenant_id() IS NOT NULL THEN
+    RAISE EXCEPTION '[A5b] sau RESET phải trả NULL, nhận %', current_tenant_id();
+END IF;
+END $$;
+
+SET app.tenant_id = '33333333-3333-3333-3333-333333333333';
+DISCARD ALL;
+DO $$
+BEGIN
+  IF current_tenant_id() IS NOT NULL THEN
+    RAISE EXCEPTION '[A5b] sau DISCARD ALL phải trả NULL, nhận %', current_tenant_id();
+END IF;
+END $$;
+
 -- A6. Metadata: LANGUAGE sql, STABLE, PARALLEL SAFE, không SECURITY DEFINER, trả uuid, không tham số
 DO $$
 DECLARE p pg_proc%ROWTYPE; lang text;
