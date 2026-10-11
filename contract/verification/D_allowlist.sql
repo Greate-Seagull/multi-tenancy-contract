@@ -20,7 +20,8 @@ CREATE TEMP TABLE allow (
 );
 
 INSERT INTO allow (check_id, object, reason) VALUES
-    ('D23-global', 'public.flyway_schema_history', 'Flyway quản lý, không phải dữ liệu tenant')
+    ('D23-global', 'platform.flyway_schema_history', 'Flyway quản lý, không phải dữ liệu tenant')
+    , ('D23-global', 'test.flyway_schema_history', 'Flyway quản lý, không phải dữ liệu tenant')
 -- , ('D23-global', 'public.provinces', 'danh mục dùng chung, app chỉ đọc')
 -- , ('D-FK', 'public.order_item.fk_order_item_product', 'trỏ bảng danh mục dùng chung')
 -- , ('D-SECDEF', 'public.some_fn(uuid)', 'lý do cần SECURITY DEFINER')
