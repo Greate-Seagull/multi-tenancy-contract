@@ -1,6 +1,6 @@
 -- Contract test nhóm B: apply_tenant_rls()
 -- Chạy bằng ROLE MIGRATOR (owner database), trên môi trường test, KHÔNG dùng --single-transaction:
---   psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f B_apply_tenant_rls.sql
+--   psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f apply_tenant_rls.sql
 -- Toàn bộ test nằm trong BEGIN ... ROLLBACK: không để lại schema/bảng nào.
 -- Procedure gọi theo search_path; nếu nằm schema riêng, sed 'apply_tenant_rls(' thành 'platform.apply_tenant_rls('.
 

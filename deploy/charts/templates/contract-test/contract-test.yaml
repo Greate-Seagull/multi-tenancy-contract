@@ -18,11 +18,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-        {{- range .Values.contractTests.groups }}
+        {{- range (include "contract.groups" . | fromYamlArray) }}
         - name: {{ .name }}
           image: {{ required "contractTests.image is required" $.Values.contractTests.image | quote }}
           command:
-            {{- toYaml .command | nindent 12 }}
+            {{- include "contract.command" (dict "group" . "root" $) | nindent 12 }}
           env:
             - name: PGHOST
               value: {{ $.Values.db.host | quote }}
@@ -33,10 +33,6 @@ spec:
             {{- with $.Values.migration.contractSchema }}
             - name: PGOPTIONS
               value: {{ printf "-c search_path=%s,public" . | quote }}
-            - name: CONTRACT_SCHEMA
-              value: {{ required "migration.contractSchema is required" $.Values.migration.contractSchema | quote }}
-            - name: SERVICE_SCHEMA
-              value: {{ required "migration.serviceSchema is required" $.Values.migration.serviceSchema | quote }}
             {{- end }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGUSER" "key" "username") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGPASSWORD" "key" "password") | nindent 12 }}
@@ -44,7 +40,17 @@ spec:
             {{- include "migrate.secretEnv" (dict "root" $ "role" "migrator" "env" "MIG_PASSWORD" "key" "password") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" "app" "env" "APP_USER" "key" "username") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" "app" "env" "APP_PASSWORD" "key" "password") | nindent 12 }}
+          {{- if and $.Values.contractTests.allowlist .allowlist }}
+          volumeMounts:
+            - { name: extra, mountPath: /extra, readOnly: true }
+          {{- end }}
         {{- end }}
+      {{- if .Values.contractTests.allowlist }}
+      volumes:
+        - name: extra
+          configMap:
+            name: {{ .Release.Name }}-contract-extra
+      {{- end }}
       containers:
         - name: done
           image: {{ .Values.contractTests.image | quote }}

@@ -1,6 +1,6 @@
 -- Contract test current_tenant_id()
 -- Chạy bằng ROLE APP, trên session mới, KHÔNG dùng --single-transaction:
---   psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f A_current_tenant_id.sql
+--   psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -f current_tenant_id.sql
 
 -- A0. Tiền đề: role app không phải superuser/BYPASSRLS (nếu không, test RLS pass giả)
 DO $$
