@@ -1,0 +1,213 @@
+name: ci-contract-images
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'contract/**'
+      - 'test/**'
+      - 'deploy/**'
+      - '.github/workflows/ci.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # PR: huỷ run cũ khi có push mới. master: mỗi commit một group riêng để không commit nào bị bỏ qua
+  group: ci-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGES: tenant-bootstrap tenant-migration
+  # Trivy cài thẳng từ release đã pin phiên bản + sha256 (không dùng action bên thứ ba cho công cụ bảo mật)
+  TRIVY_VERSION: '0.75.0'
+  TRIVY_SHA256: 'c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f'
+
+jobs:
+  # 1. Build: không push gì, mỗi image xuất ra một file tar
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: bootstrap
+            image: tenant-bootstrap
+            context: contract/bootstrap
+            file: contract/bootstrap/Dockerfile
+          - name: migration
+            image: tenant-migration
+            context: contract/migration-base
+            file: contract/migration-base/Dockerfile
+          - name: contract-test
+            image: tenant-contract-test
+            context: contract/verification
+            file: contract/verification/Dockerfile
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Tên owner viết thường (docker yêu cầu)
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.name }}.tar
+          tags: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: image-${{ matrix.name }}
+          path: ${{ runner.temp }}/${{ matrix.name }}.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  # 2a. Test: kind + đúng các image vừa build (không pull từ GHCR), chạy test deploy + contract test
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: image-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/images
+
+      - name: Load images và đặt tên image cho test
+        run: |
+          for f in "$RUNNER_TEMP"/images/*.tar; do docker load -i "$f"; done
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "BOOT_IMAGE=ghcr.io/$owner/tenant-bootstrap:sha-$GITHUB_SHA"
+            echo "SERVICE_IMAGE=ghcr.io/$owner/tenant-migration:sha-$GITHUB_SHA"
+            echo "CONTRACT_TEST_IMAGE=ghcr.io/$owner/tenant-contract-test:sha-$GITHUB_SHA"
+          } >> "$GITHUB_ENV"
+
+      - uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+        with:
+          cluster_name: test
+          kubectl_version: v1.31.0
+
+      # bootstrap, migration, contract test đều chạy trong cluster
+      - name: Load images vào kind
+        run: kind load docker-image "$BOOT_IMAGE" "$SERVICE_IMAGE" "$CONTRACT_TEST_IMAGE" --name test
+
+      # Cài helm + helmfile đúng phiên bản khai báo trong mise.toml (cùng file dùng khi chạy trên máy)
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+
+      - name: Test deploy
+        run: ./test/run.sh
+
+      - name: Diagnostics khi test lỗi
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -n 40 || true
+          for ns in test test-db; do
+            kubectl -n "$ns" get jobs,pods || true
+            kubectl -n "$ns" describe pods || true
+            kubectl -n "$ns" logs -l job-name --all-containers --prefix --tail=200 || true
+          done
+
+  # 2b. Scan song song với test. Chỉ scan image chạy với credential DB; tenant-test chỉ dùng trong CI
+  scan:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [bootstrap, migration]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false     # để Trivy đọc được .trivyignore ở gốc repo
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: image-${{ matrix.name }}
+          path: ${{ runner.temp }}/images
+
+      - name: Cài Trivy (pin phiên bản + sha256)
+        run: |
+          url="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/trivy.tgz" "$url"
+          echo "${TRIVY_SHA256}  $RUNNER_TEMP/trivy.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/trivy.tgz" -C "$RUNNER_TEMP" trivy
+
+      # Chỉ chặn lỗ hổng HIGH/CRITICAL đã có bản vá; CVE chưa có bản vá không chặn release
+      - name: Scan image
+        run: |
+          "$RUNNER_TEMP/trivy" image \
+            --input "$RUNNER_TEMP/images/${{ matrix.name }}.tar" \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            --ignorefile .trivyignore.yaml
+
+  # 3. Publish: chỉ trên push vào master, sau khi test và scan xanh. Đẩy đúng file tar đã test
+  publish:
+    needs: [test, scan]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write        # attestation keyless
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: image-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/images
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load và push image tag sha-<commit>
+        id: push
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "OWNER=$owner" >> "$GITHUB_ENV"
+          for f in "$RUNNER_TEMP"/images/*.tar; do docker load -i "$f"; done
+          for img in $IMAGES; do
+            ref="ghcr.io/$owner/$img:sha-$GITHUB_SHA"
+            docker push "$ref"
+            repo_digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$ref")
+            echo "${img//-/_}_digest=${repo_digest#*@}" >> "$GITHUB_OUTPUT"
+          done
+
+      # Attestation gắn theo digest nên release chỉ gắn thêm tag mà không làm mất hiệu lực
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ghcr.io/${{ env.OWNER }}/tenant-bootstrap
+          subject-digest: ${{ steps.push.outputs.tenant_bootstrap_digest }}
+          push-to-registry: true
+
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ghcr.io/${{ env.OWNER }}/tenant-migration
+          subject-digest: ${{ steps.push.outputs.tenant_migration_digest }}
+          push-to-registry: true
