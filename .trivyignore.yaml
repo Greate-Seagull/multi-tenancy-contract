@@ -1,0 +1,21 @@
+vulnerabilities:
+  - id: CVE-2025-59250
+    paths: ["flyway/drivers/mssql-jdbc-*.jar"]
+    statement: "Không dùng SQL Server; nghi false positive"
+  - id: CVE-2026-106451
+    paths: ["flyway/drivers/databricks-jdbc-*.jar"]
+    statement: "Không dùng Databricks"
+  - id: CVE-2026-89407
+    paths: ["flyway/drivers/databricks-jdbc-*.jar", "flyway/drivers/couchbase/core-io-*.jar"]
+  - id: CVE-2026-89425
+    paths: ["flyway/drivers/databricks-jdbc-*.jar", "flyway/drivers/couchbase/core-io-*.jar"]
+  - id: CVE-2026-68497
+    paths: ["flyway/drivers/databricks-jdbc-*.jar"]
+  - id: CVE-2026-91776
+    paths: ["flyway/drivers/databricks-jdbc-*.jar", "flyway/drivers/couchbase/core-io-*.jar"]
+  - id: CVE-2026-91777
+    paths: ["flyway/drivers/databricks-jdbc-*.jar", "flyway/drivers/couchbase/core-io-*.jar"]
+  - id: CVE-2026-54399
+    paths: ["flyway/drivers/databricks-jdbc-*.jar"]
+  - id: CVE-2026-54428
+    paths: ["flyway/drivers/databricks-jdbc-*.jar"]
