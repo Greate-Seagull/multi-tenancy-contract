@@ -1,0 +1,4 @@
+# Công cụ cho test deploy; CI (jdx/mise-action) và máy dev dùng chung file này
+[tools]
+helm = "3.16.2"
+helmfile = "1.8.1"
