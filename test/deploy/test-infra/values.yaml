@@ -1,0 +1,17 @@
+# Namespace chứa Postgres; Secret của ứng dụng nằm ở namespace của release (-n)
+dbNamespace: test-db
+
+postgres:
+  image: postgres:18-bookworm
+  storage: 2Gi
+
+# Chỉ dùng cho môi trường test; ghi đè bằng --set passwords.*
+passwords:
+  admin: root
+  migrator: root
+  app: root
+
+users:
+  admin: postgres
+  migrator: tenant_migrator
+  app: tenant_app

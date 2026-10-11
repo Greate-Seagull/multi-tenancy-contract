@@ -13,3 +13,21 @@ migration:
   image: ""
   contractSchema: platform
   serviceSchema: ""
+
+contractTests:
+  enabled: false          # bật bằng --set contractTests.enabled=true khi chạy test
+  image: ""               # ghcr.io/greate-seagull/contract-tests:sha-...
+  deadlineSeconds: 300
+  groups:
+    - name: group-a
+      role: app
+      command: [psql, -X, -q, -v, ON_ERROR_STOP=1, -f, /tests/A_current_tenant_id.sql]
+    - name: group-b
+      role: migrator
+      command: [psql, -X, -q, -v, ON_ERROR_STOP=1, -f, /tests/B_apply_tenant_rls.sql]
+    - name: group-c
+      role: migrator
+      command: [bash, /tests/C_tenant_isolation.sh]
+    - name: group-d
+      role: migrator
+      command: [bash, /tests/D_catalog_guard.sh]

@@ -12,6 +12,9 @@
 -- check_id: D0, D0-exec, D23, D23-notnull, D23-global, D23-inherit, D24-role, D24-priv,
 --           D24-global-write, D24-flyway, D24-owner, D24-member, D25, D26,
 --           D-FK, D-UNIQUE, D-VIEW, D-MATVIEW, D-SECDEF, D-SECDEF-OWNER, D-SECDEF-PATH
+\getenv contract_schema CONTRACT_SCHEMA
+\getenv service_schema  SERVICE_SCHEMA
+
 CREATE TEMP TABLE allow (
   check_id text NOT NULL,
   object   text NOT NULL,
@@ -20,7 +23,8 @@ CREATE TEMP TABLE allow (
 );
 
 INSERT INTO allow (check_id, object, reason) VALUES
-    ('D23-global', 'public.flyway_schema_history', 'Flyway quản lý, không phải dữ liệu tenant')
+    ('D23-global', format('%s.flyway_schema_history', :'contract_schema'), 'Flyway quản lý, không phải dữ liệu tenant')
+    , ('D23-global', format('%s.flyway_schema_history', :'service_schema'),  'Flyway quản lý, không phải dữ liệu tenant')
 -- , ('D23-global', 'public.provinces', 'danh mục dùng chung, app chỉ đọc')
 -- , ('D-FK', 'public.order_item.fk_order_item_product', 'trỏ bảng danh mục dùng chung')
 -- , ('D-SECDEF', 'public.some_fn(uuid)', 'lý do cần SECURITY DEFINER')

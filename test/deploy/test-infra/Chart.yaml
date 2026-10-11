@@ -1,0 +1,5 @@
+apiVersion: v2
+name: test-infra
+description: Postgres và Secret cho môi trường test (kind/k3s). Không dùng cho prod.
+type: application
+version: 0.1.0
