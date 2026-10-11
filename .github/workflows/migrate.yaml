@@ -19,10 +19,10 @@ jobs:
       SERVICE_IMAGE: service-migration:${{ github.sha }}
     steps:
       - name: Checkout caller repo (migrations)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Checkout contract repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Greate-Seagull/multi-tenancy-contract # Chỉ nhận dạng <owner>/<repo>
           ref: ${{ inputs.contract-ref }}
@@ -71,7 +71,7 @@ jobs:
 #    runs-on: ubuntu-latest
 #    environment: production         # bật Required reviewers trong GitHub để có bước duyệt
 #    steps:
-#      - uses: actions/checkout@v4
+#      - uses: actions/checkout@v7
 #      - name: Kubeconfig
 #        env:
 #          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
