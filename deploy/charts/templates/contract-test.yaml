@@ -1,0 +1,48 @@
+{{- if .Values.contractTests.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-contract-tests
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "50"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: {{ .Values.contractTests.deadlineSeconds | default 300 }}
+  template:
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- range .Values.contractTests.groups }}
+        - name: {{ .name }}
+          image: {{ required "contractTests.image is required" $.Values.contractTests.image | quote }}
+          command:
+            {{- toYaml .command | nindent 12 }}
+          env:
+            - name: PGHOST
+              value: {{ $.Values.db.host | quote }}
+            - name: PGPORT
+              value: {{ $.Values.db.port | default 5432 | quote }}
+            - name: PGDATABASE
+              value: {{ $.Values.db.name | quote }}
+            {{- with $.Values.migration.contractSchema }}
+            - name: PGOPTIONS
+              value: {{ printf "-c search_path=%s,public" . | quote }}
+            {{- end }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGUSER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGPASSWORD" "key" "password") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" "migrator" "env" "MIG_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" "migrator" "env" "MIG_PASSWORD" "key" "password") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" "app" "env" "APP_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" $ "role" "app" "env" "APP_PASSWORD" "key" "password") | nindent 12 }}
+        {{- end }}
+      containers:
+        - name: done
+          image: {{ .Values.contractTests.image | quote }}
+          command: [echo, "all contract tests passed"]
+{{- end }}

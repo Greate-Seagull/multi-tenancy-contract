@@ -1,0 +1,45 @@
+{{- $ns := env "NS" | default "test" }}
+{{- $dbNs := env "DB_NS" | default (printf "%s-db" $ns) }}
+{{- /* Đường dẫn tính từ thư mục chứa file này (test/deploy/) */}}
+{{- $chartDir := env "CHART_DIR" | default "../../deploy/charts" }}
+{{- $infraDir := env "INFRA_CHART_DIR" | default "./test-infra" }}
+{{- $valuesFile := env "VALUES_FILE" | default "./args/values.yaml" }}
+
+# Chỉ dùng cho môi trường test (kind/k3s). Prod vẫn deploy bằng deploy/migrate-database.sh.
+helmDefaults:
+  wait: true
+  waitForJobs: true
+  timeout: 180        # giây, cho mỗi release khi sync
+  historyMax: 10
+
+releases:
+  - name: {{ $ns }}-infra
+    namespace: {{ $ns }}
+    chart: {{ $infraDir }}
+    createNamespace: true
+    set:
+      - name: dbNamespace
+        value: {{ $dbNs | quote }}
+      - name: passwords.admin
+        value: {{ env "DB_ADMIN_PASSWORD" | default "root" | quote }}
+      - name: passwords.migrator
+        value: {{ env "MIGRATOR_PASSWORD" | default "root" | quote }}
+      - name: passwords.app
+        value: {{ env "APP_PASSWORD" | default "root" | quote }}
+
+  - name: {{ $ns }}-release
+    namespace: {{ $ns }}
+    chart: {{ $chartDir }}
+    needs:
+      - {{ $ns }}/{{ $ns }}-infra
+    values:
+      - {{ $valuesFile }}
+    set:
+      - name: bootstrap.image
+        value: {{ requiredEnv "BOOT_IMAGE" | quote }}
+      - name: migration.image
+        value: {{ requiredEnv "IMAGE" | quote }}
+      - name: contractTests.enabled
+        value: true
+      - name: contractTests.image
+        value: {{ requiredEnv "CONTRACT_TEST_IMAGE" | quote }}
