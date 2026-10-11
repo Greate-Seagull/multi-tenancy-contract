@@ -33,6 +33,10 @@ spec:
             {{- with $.Values.migration.contractSchema }}
             - name: PGOPTIONS
               value: {{ printf "-c search_path=%s,public" . | quote }}
+            - name: CONTRACT_SCHEMA
+              value: {{ required "migration.contractSchema is required" $.Values.migration.contractSchema | quote }}
+            - name: SERVICE_SCHEMA
+              value: {{ required "migration.serviceSchema is required" $.Values.migration.serviceSchema | quote }}
             {{- end }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGUSER" "key" "username") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGPASSWORD" "key" "password") | nindent 12 }}
