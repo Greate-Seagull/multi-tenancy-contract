@@ -1,5 +1,5 @@
 -- Contract test nhóm D: guard trên catalog của DB thật. Chỉ đọc; gom TẤT CẢ vi phạm rồi fail một lần.
--- Biến psql: :app = tên role app. Cần bảng tạm `allow` từ D_allowlist.sql.
+-- Biến psql: :app = tên role app. Cần bảng tạm `allow` từ allowlist.sql.
 SET client_min_messages = warning;
 
 CREATE TEMP TABLE app_role AS
@@ -32,7 +32,8 @@ WHERE r.relkind IN ('r','p');
 
 CREATE TEMP TABLE global_rel AS
 SELECT r.* FROM scope_rel r
-WHERE r.relkind IN ('r','p') AND NOT EXISTS (SELECT 1 FROM tenant_rel t WHERE t.oid = r.oid);
+WHERE r.relkind IN ('r','p') AND r.relname <> 'flyway_schema_history'
+  AND NOT EXISTS (SELECT 1 FROM tenant_rel t WHERE t.oid = r.oid);
 
 CREATE TEMP TABLE scope_fn AS
 SELECT p.oid, p.prosecdef, p.proowner, p.proconfig,

@@ -1,0 +1,13 @@
+{{- if and .Values.contractTests.enabled .Values.contractTests.allowlist }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-contract-extra
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-weight: "-5"        # tạo trước Job
+    helm.sh/hook-delete-policy: before-hook-creation
+data:
+  allowlist.sql: |
+{{ .Values.contractTests.allowlist | indent 4 }}
+{{- end }}
