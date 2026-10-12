@@ -120,12 +120,23 @@ jobs:
       - name: Diagnostics khi test lỗi
         if: failure()
         run: |
-          kubectl get pods -A -o wide || true
-          kubectl get events -A --sort-by=.lastTimestamp | tail -n 40 || true
+          echo "=== Pod không khỏe"
+          kubectl get pods -A --no-headers | grep -Ev ' Running | Completed ' || true
+
+          echo "=== Event Warning"
+          kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp | tail -n 30 || true
+
           for ns in test test-db; do
-            kubectl -n "$ns" get jobs,pods || true
-            kubectl -n "$ns" describe pods || true
-            kubectl -n "$ns" logs -l job-name --all-containers --prefix --tail=200 || true
+            for p in $(kubectl -n "$ns" get pods --no-headers | awk '$3!="Running" && $3!="Completed"{print $1}'); do
+              echo "=== $ns/$p: trạng thái container"
+              kubectl -n "$ns" get pod "$p" -o jsonpath='{range .status.initContainerStatuses[*]}{.name}{"\texit="}{.state.terminated.exitCode}{"\t"}{.state.terminated.reason}{"\n"}{end}' || true
+
+              echo "=== $ns/$p: log"
+              kubectl -n "$ns" logs "$p" --all-containers --prefix --tail=50 || true
+
+              echo "=== $ns/$p: events"
+              kubectl -n "$ns" describe pod "$p" | sed -n '/^Events:/,$p' | tail -n 15 || true
+            done
           done
 
   # 2b. Scan song song với test. Chỉ scan image chạy với credential DB; tenant-test chỉ dùng trong CI
