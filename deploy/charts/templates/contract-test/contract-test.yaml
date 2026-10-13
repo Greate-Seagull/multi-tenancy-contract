@@ -37,6 +37,8 @@ spec:
             {{- end }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGUSER" "key" "username") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" .role "env" "PGPASSWORD" "key" "password") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "admin" "env" "ADMIN_USER" "key" "username") | nindent 12 }}
+            {{- include "migrate.secretEnv" (dict "root" . "role" "admin" "env" "ADMIN_PASSWORD" "key" "password") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" "migrator" "env" "MIG_USER" "key" "username") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" "migrator" "env" "MIG_PASSWORD" "key" "password") | nindent 12 }}
             {{- include "migrate.secretEnv" (dict "root" $ "role" "app" "env" "APP_USER" "key" "username") | nindent 12 }}

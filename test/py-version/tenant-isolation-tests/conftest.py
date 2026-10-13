@@ -43,9 +43,9 @@ def _dsn(dsn_env: str, user_env: str, password_env: str) -> str | None:
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     app_dsn = _dsn("APP_USER_DSN", "APP_USER", "APP_PASSWORD")
-    admin_dsn = _dsn("ADMIN_DSN", "PGUSER", "PGPASSWORD")
+    admin_dsn = _dsn("ADMIN_DSN", "ADMIN_USER", "ADMIN_PASSWORD")
     missing = [n for n, v in (("APP_USER_DSN (hoặc APP_USER + APP_PASSWORD)", app_dsn),
-                              ("ADMIN_DSN (hoặc PGUSER + PGPASSWORD)", admin_dsn)) if not v]
+                              ("ADMIN_DSN (hoặc ADMIN_USER + ADMIN_PASSWORD)", admin_dsn)) if not v]
     if missing:
         pytest.exit(f"Thiếu biến môi trường: {', '.join(missing)} (xem .env.example)", returncode=2)
     schema = os.environ.get("FIXTURE_SCHEMA", "tbl_fixture")
