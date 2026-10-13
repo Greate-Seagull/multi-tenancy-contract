@@ -1,0 +1,1 @@
+docker build -t tenant-isolation-tests:latest .

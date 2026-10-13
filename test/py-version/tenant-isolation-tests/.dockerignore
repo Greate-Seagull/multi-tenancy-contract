@@ -1,0 +1,13 @@
+.env
+.venv/
+.git/
+.gitignore
+.pytest_cache/
+__pycache__/
+*.pyc
+reports/
+*.zip
+README.md
+.env.example
+Dockerfile
+.dockerignore

@@ -1,0 +1,1 @@
+docker run --rm tenant-isolation-tests:latest -k "not tbl"
