@@ -18,6 +18,7 @@ contractTests:
   enabled: true
   image: ""
   deadlineSeconds: 300
-  run: [current-tenant-id, apply-tenant-rls, isolation-fixture,
-        isolation-app, isolation-owner, catalog-guard]
+#  run: [current-tenant-id, apply-tenant-rls, isolation-fixture,
+#        isolation-app, isolation-owner, catalog-guard]
+  run: [ contract-test ]
   allowlist: ""              # SQL của service, tùy chọn
