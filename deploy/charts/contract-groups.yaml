@@ -3,8 +3,8 @@ psql: &psql [psql, -X, -q, -w, -v, ON_ERROR_STOP=1, -v, app=$(APP_USER)]
 groups:
   - name: contract-test
     role: app
-    command: -k "not tbl"
-    files: []
+    command: -k
+    files: ["not tbl"]
 
 #  - name: current-tenant-id
 #    role: app
