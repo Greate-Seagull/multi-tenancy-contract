@@ -56,7 +56,7 @@ def open_role(role: str, settings) -> psycopg.Connection:
     if role == "app_user":
         dsn = settings.app_dsn
     elif role == "app_migrator":
-        dsn = os.environ.get("APP_MIGRATOR_DSN")
+        dsn = settings.migrator_dsn
         if not dsn:
             pytest.skip("Thiếu APP_MIGRATOR_DSN – bỏ qua test cần role app_migrator")
     elif role in ("postgres", "app_owner"):
@@ -106,8 +106,8 @@ def assert_app_user_denied(app_conn, schema, settings, statement: str):
 
 
 @pytest.fixture(scope="session")
-def migrator_conn(schema):
-    dsn = os.environ.get("APP_MIGRATOR_DSN")
+def migrator_conn(schema, settings):
+    dsn = settings.migrator_dsn
     if not dsn:
         pytest.skip("Thiếu APP_MIGRATOR_DSN – bỏ qua test cần role app_migrator")
     conn = psycopg.connect(dsn, application_name="tbl-isolation-tests")

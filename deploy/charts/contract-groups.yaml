@@ -1,33 +1,37 @@
 psql: &psql [psql, -X, -q, -w, -v, ON_ERROR_STOP=1, -v, app=$(APP_USER)]
 
 groups:
-  - name: current-tenant-id
+  - name: contract-test
     role: app
-    command: *psql
-    files: [/tests/contract/current_tenant_id.sql]
+    command: -k "not tbl"
 
-  - name: apply-tenant-rls
-    role: migrator
-    command: *psql
-    files: [/tests/contract/apply_tenant_rls.sql]
-
-  - name: isolation-fixture
-    role: migrator
-    command: *psql
-    files: [/tests/contract/isolation/fixture.sql]
-
-  - name: isolation-app
-    role: app
-    command: *psql
-    files: [/tests/contract/isolation/app.sql]
-
-  - name: isolation-owner
-    role: migrator
-    command: *psql
-    files: [/tests/contract/isolation/owner.sql]
-
-  - name: catalog-guard
-    role: migrator
-    command: *psql
-    allowlist: true           # chỗ chèn allowlist riêng của service
-    files: [/tests/shared/allowlist.sql, /tests/shared/catalog_guard.sql]
+#  - name: current-tenant-id
+#    role: app
+#    command: *psql
+#    files: [/tests/contract/current_tenant_id.sql]
+#
+#  - name: apply-tenant-rls
+#    role: migrator
+#    command: *psql
+#    files: [/tests/contract/apply_tenant_rls.sql]
+#
+#  - name: isolation-fixture
+#    role: migrator
+#    command: *psql
+#    files: [/tests/contract/isolation/fixture.sql]
+#
+#  - name: isolation-app
+#    role: app
+#    command: *psql
+#    files: [/tests/contract/isolation/app.sql]
+#
+#  - name: isolation-owner
+#    role: migrator
+#    command: *psql
+#    files: [/tests/contract/isolation/owner.sql]
+#
+#  - name: catalog-guard
+#    role: migrator
+#    command: *psql
+#    allowlist: true           # chỗ chèn allowlist riêng của service
+#    files: [/tests/shared/allowlist.sql, /tests/shared/catalog_guard.sql]

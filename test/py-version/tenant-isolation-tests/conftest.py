@@ -9,6 +9,7 @@ from pathlib import Path
 import psycopg
 import pytest
 from psycopg import sql
+from psycopg.conninfo import make_conninfo
 
 from helpers import FIXTURE_MARKER, SCHEMA_RE, SEED_IDS
 
@@ -21,6 +22,7 @@ SQL_FILE = ROOT / "sql" / "fixture_schema.sql"
 class Settings:
     app_dsn: str
     admin_dsn: str
+    migrator_dsn: str | None
     schema: str
     owner_role: str
     keep_fixture: bool
@@ -29,9 +31,21 @@ class Settings:
 # --------------------------------------------------------------------------
 # Cấu hình
 # --------------------------------------------------------------------------
+def _dsn(dsn_env: str, user_env: str, password_env: str) -> str | None:
+    """Ưu tiên chuỗi DSN nếu có; nếu không thì ghép từ user/password riêng (tự escape ký tự đặc biệt).
+    host/port/dbname do libpq tự lấy từ PGHOST/PGPORT/PGDATABASE."""
+    if os.environ.get(dsn_env):
+        return os.environ[dsn_env]
+    user, password = os.environ.get(user_env), os.environ.get(password_env)
+    return make_conninfo(user=user, password=password) if user and password else None
+
+
 @pytest.fixture(scope="session")
 def settings() -> Settings:
-    missing = [n for n in ("APP_USER_DSN", "ADMIN_DSN") if not os.environ.get(n)]
+    app_dsn = _dsn("APP_USER_DSN", "APP_USER", "APP_PASSWORD")
+    admin_dsn = _dsn("ADMIN_DSN", "ADMIN_USER", "ADMIN_PASSWORD")
+    missing = [n for n, v in (("APP_USER_DSN (hoặc APP_USER + APP_PASSWORD)", app_dsn),
+                              ("ADMIN_DSN (hoặc ADMIN_USER + ADMIN_PASSWORD)", admin_dsn)) if not v]
     if missing:
         pytest.exit(f"Thiếu biến môi trường: {', '.join(missing)} (xem .env.example)", returncode=2)
     schema = os.environ.get("FIXTURE_SCHEMA", "tbl_fixture")
@@ -39,8 +53,9 @@ def settings() -> Settings:
         pytest.exit(f"FIXTURE_SCHEMA='{schema}' không hợp lệ: phải bắt đầu bằng 'tbl_' "
                     "và chỉ gồm chữ thường/số/gạch dưới (để không bao giờ chạm schema thật)", returncode=2)
     return Settings(
-        app_dsn=os.environ["APP_USER_DSN"],
-        admin_dsn=os.environ["ADMIN_DSN"],
+        app_dsn=app_dsn,
+        admin_dsn=admin_dsn,
+        migrator_dsn=_dsn("APP_MIGRATOR_DSN", "MIG_USER", "MIG_PASSWORD"),
         schema=schema,
         owner_role=os.environ.get("OWNER_ROLE", "app_owner"),
         keep_fixture=os.environ.get("KEEP_FIXTURE") == "1",

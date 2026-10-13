@@ -44,8 +44,10 @@ jobs:
             file: contract/migration-base/Dockerfile
           - name: contract-test
             image: tenant-contract-test
-            context: contract/verification
-            file: contract/verification/Dockerfile
+#            context: contract/verification
+#            file: contract/verification/Dockerfile
+            context: test/py-version/tenant-isolation-tests
+            file: test/py-version/tenant-isolation-tests/Dockerfile
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
