@@ -1,0 +1,205 @@
+Mã TC,Nhóm,Mục tài liệu,Kiểm thử điều gì,Cách thực hiện,Kết quả mong đợi,Ưu tiên,Kết quả thực tế,Trạng thái
+TC-ISO-01,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Tenant A không đọc (xem/tìm/liệt kê) được dữ liệu tenant B,"Đăng nhập tenant A, gọi API get/list/search dữ liệu của B",Không trả dòng nào của B,P0,,Chưa chạy
+TC-ISO-02,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Tenant A không export được dữ liệu tenant B,Chạy chức năng export/báo cáo bằng tenant A,File chỉ chứa dữ liệu A,P0,,Chưa chạy
+TC-ISO-03,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Tenant A không tạo được dữ liệu thuộc tenant B,POST với tenant_id của B trong body/param,Bị từ chối hoặc ghi vào tenant A; không có dòng mới ở B,P0,,Chưa chạy
+TC-ISO-04,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Tenant A không sửa được dữ liệu tenant B,PUT/PATCH theo ID của B,404 / 0 dòng bị ảnh hưởng; dữ liệu B không đổi,P0,,Chưa chạy
+TC-ISO-05,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Tenant A không xóa được dữ liệu tenant B,DELETE theo ID của B,404 / 0 dòng bị ảnh hưởng; dữ liệu B còn nguyên,P0,,Chưa chạy
+TC-ISO-06,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Phản hồi khi truy cập ID của tenant khác giống hệt ID không tồn tại,So sánh /orders/{id của B} với /orders/{id không có thật},"Cùng mã lỗi 'không tìm thấy', cùng nội dung, không phải 'không có quyền'",P0,,Chưa chạy
+TC-ISO-07,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Thống kê chung không làm lộ số liệu tenant khác,Gọi API thống kê/đếm từ tenant A,Chỉ đếm dữ liệu của A,P1,,Chưa chạy
+TC-ISO-08,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Thông báo lỗi không chứa dữ liệu tenant khác,"Gây lỗi nghiệp vụ trên tenant A, đọc nội dung lỗi",Không có giá trị/ID/tên của B,P0,,Chưa chạy
+TC-ISO-09,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Khóa cache có tenant_id,Tenant A và B cùng gọi một endpoint có cache; so sánh khóa và kết quả,Khóa khác nhau theo tenant; không trả nhầm cache,P0,,Chưa chạy
+TC-ISO-10,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,File lưu trữ tách theo thư mục/bucket/tiền tố tenant,Tenant A thử tải file theo đường dẫn/ID file của B,Bị từ chối / không tìm thấy,P0,,Chưa chạy
+TC-ISO-11,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Log không lẫn dữ liệu nhạy cảm tenant khác trong tầm xem của tenant,Xem log/audit mà tenant A truy cập được,Chỉ có log của A,P1,,Chưa chạy
+TC-ISO-12,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Search index lọc theo tenant,Tìm kiếm từ khóa chỉ có ở dữ liệu B bằng tenant A,Không có kết quả,P0,,Chưa chạy
+TC-ISO-13,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Hàng đợi tin nhắn không giao nhầm tenant,"Đẩy message của A và B, kiểm tra consumer và tenant_id mang theo",Mỗi message xử lý đúng tenant,P1,,Chưa chạy
+TC-ISO-14,Nguyên tắc cách ly chung (đọc/ghi/suy ra),1,Khôi phục (restore) tenant A không ảnh hưởng tenant B,Restore dữ liệu A từ backup rồi đối chiếu dữ liệu B,Dữ liệu B không đổi,P1,,Chưa chạy
+TC-TBL-01,Bảng không có tenant_id,4.1,"Bảng tham chiếu dùng chung (quốc gia, tiền tệ...) đọc được bởi mọi tenant",SELECT bằng app_user ở các tenant khác nhau,Mọi tenant đọc cùng dữ liệu; app_user không có quyền ghi,P2,,Chưa chạy
+TC-TBL-02,Bảng không có tenant_id,4.1,"Bảng cấu hình nền tảng (plans, feature flags) không cho tenant sửa",UPDATE/INSERT bằng app_user,Bị từ chối (permission denied),P1,,Chưa chạy
+TC-TBL-03,Bảng không có tenant_id,4.1,Bảng tenants: tenant chỉ thấy bản ghi của chính mình,SELECT * FROM tenants với app.tenant_id = A,Chỉ trả dòng id = A,P0,,Chưa chạy
+TC-TBL-04,Bảng không có tenant_id,4.1,Bảng con (order_items) có tenant_id và policy lọc trực tiếp,Kiểm tra cột và policy; truy vấn bằng tenant khác,"Có tenant_id, RLS lọc đúng, không cần join",P1,,Chưa chạy
+TC-TBL-05,Bảng không có tenant_id,4.1,Bảng nối many-to-many có tenant_id và FK kép,Thử chèn dòng nối giữa 2 bản ghi thuộc 2 tenant khác nhau,Bị FK kép từ chối,P1,,Chưa chạy
+TC-TBL-06,Bảng không có tenant_id,4.1,"Bảng kỹ thuật (schema_migrations, khóa phân tán, job queue) không truy cập được bởi app_user",SELECT/INSERT bằng app_user,Bị từ chối hoặc đã tách tenant,P1,,Chưa chạy
+TC-TBL-07,Bảng không có tenant_id,4.1,Bảng memberships: người dùng nhiều tenant chỉ thấy membership hợp lệ,SELECT memberships với từng tenant,Chỉ thấy dòng thuộc tenant hiện tại,P1,,Chưa chạy
+TC-PRV-01,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không chạy được CREATE/ALTER/DROP TABLE,Chạy từng lệnh bằng app_user,permission denied,P0,,Chưa chạy
+TC-PRV-02,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không chạy được TRUNCATE,TRUNCATE bảng nghiệp vụ bằng app_user,permission denied,P0,,Chưa chạy
+TC-PRV-03,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không CREATE INDEX / VIEW / FUNCTION / PROCEDURE / TRIGGER,Chạy từng lệnh bằng app_user,permission denied,P0,,Chưa chạy
+TC-PRV-04,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không CREATE/ALTER/DROP POLICY,Chạy từng lệnh bằng app_user,permission denied (không phải owner),P0,,Chưa chạy
+TC-PRV-05,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không CREATE SCHEMA / DATABASE,Chạy bằng app_user,permission denied,P0,,Chưa chạy
+TC-PRV-06,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không GRANT/REVOKE/ALTER DEFAULT PRIVILEGES,Chạy bằng app_user,permission denied,P0,,Chưa chạy
+TC-PRV-07,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user không CREATE/ALTER/DROP ROLE,Chạy bằng app_user và app_migrator,permission denied (chỉ postgres),P0,,Chưa chạy
+TC-PRV-08,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5","app_migrator chạy được DDL (CREATE TABLE, ALTER, INDEX, POLICY...) qua app_owner",Chạy migration mẫu bằng app_migrator,Thành công; đối tượng mới có owner = app_owner,P0,,Chưa chạy
+TC-PRV-09,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_migrator không CREATE DATABASE / CREATE ROLE,Chạy bằng app_migrator,permission denied,P1,,Chưa chạy
+TC-PRV-10,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",app_user chạy được INSERT/UPDATE/DELETE/SELECT trong phạm vi tenant,Thao tác CRUD với app.tenant_id hợp lệ,Thành công trên dữ liệu của tenant,P0,,Chưa chạy
+TC-PRV-11,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",MERGE chỉ tác động dòng của tenant hiện tại,MERGE với nguồn chứa dòng của tenant khác,Dòng tenant khác không bị đọc/sửa/xóa/chèn,P0,,Chưa chạy
+TC-PRV-12,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",COPY FROM STDIN / COPY (SELECT) TO STDOUT bị RLS áp dụng,COPY bằng app_user,Chỉ xuất/nhập dữ liệu của tenant hiện tại; nhập sai tenant bị WITH CHECK chặn,P0,,Chưa chạy
+TC-PRV-13,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",SELECT ... FOR UPDATE / FOR SHARE và WITH (CTE) chỉ thấy dòng tenant,Chạy bằng app_user,Không khóa/đọc dòng tenant khác,P0,,Chưa chạy
+TC-PRV-14,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",EXPLAIN [ANALYZE] bị chặn với app_user ở môi trường production,Chạy EXPLAIN bằng app_user ở prod và dev,Prod: bị từ chối; dev: được phép,P1,,Chưa chạy
+TC-PRV-15,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",PREPARE TRANSACTION / COMMIT PREPARED / ROLLBACK PREPARED không dùng được,Chạy bằng mọi role; kiểm tra max_prepared_transactions,Lỗi vì max_prepared_transactions = 0,P1,,Chưa chạy
+TC-PRV-16,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5","BEGIN/COMMIT/ROLLBACK, SAVEPOINT, SET TRANSACTION hoạt động ở cả 4 vai trò",Chạy từng lệnh bằng 4 role,"Thành công, chỉ tác động transaction của chính phiên",P2,,Chưa chạy
+TC-PRV-17,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",SET LOCAL app.tenant_id chỉ do app_user (service) thực hiện,Kiểm tra luồng middleware đặt tenant,Đặt đúng tenant ở đầu mỗi transaction,P0,,Chưa chạy
+TC-PRV-18,Phân quyền theo câu lệnh và vai trò,"3.1, 3.5",COMMENT chỉ do app_migrator/postgres,COMMENT ON bằng app_user,permission denied,P3,,Chưa chạy
+TC-ROL-01,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",Tạo role ở cấp cluster theo thứ tự bootstrap (app_owner → app_migrator → app_user) bởi postgres,Chạy script bootstrap trên cluster mới; \du,"Cả 3 role tồn tại, người tạo là postgres",P1,,Chưa chạy
+TC-ROL-02,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_owner là NOLOGIN,Thử đăng nhập bằng app_owner; xem rolcanlogin,Không đăng nhập được; rolcanlogin = false,P0,,Chưa chạy
+TC-ROL-03,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_owner / app_migrator / app_user là NOSUPERUSER,SELECT rolsuper FROM pg_roles,false cho cả 3,P0,,Chưa chạy
+TC-ROL-04,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_owner / app_migrator / app_user là NOBYPASSRLS,SELECT rolbypassrls FROM pg_roles,false cho cả 3,P0,,Chưa chạy
+TC-ROL-05,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2","NOCREATEDB, NOCREATEROLE, NOREPLICATION cho 3 role ứng dụng","SELECT rolcreatedb, rolcreaterole, rolreplication",false cho cả 3,P0,,Chưa chạy
+TC-ROL-06,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_migrator có CONNECTION LIMIT thấp (1–2),SELECT rolconnlimit; mở vượt giới hạn,Kết nối thứ 3 bị từ chối,P2,,Chưa chạy
+TC-ROL-07,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_user có CONNECTION LIMIT theo kích thước pool,SELECT rolconnlimit; mở vượt giới hạn,Vượt giới hạn bị từ chối,P2,,Chưa chạy
+TC-ROL-08,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",Xác thực scram-sha-256 hoặc chứng chỉ; không dùng md5/trust/password,Kiểm tra pg_authid / pg_hba.conf,Chỉ scram-sha-256 hoặc cert,P0,,Chưa chạy
+TC-ROL-09,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",VALID UNTIL đặt và có quy trình xoay vòng mật khẩu,SELECT rolvaliduntil; thử đăng nhập sau khi hết hạn,Có ngày hết hạn; hết hạn thì không đăng nhập được,P2,,Chưa chạy
+TC-ROL-10,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_migrator là thành viên app_owner,"SELECT pg_has_role('app_migrator','app_owner','member')",true,P0,,Chưa chạy
+TC-ROL-11,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",app_user không là thành viên của bất kỳ role nào,SELECT * FROM pg_auth_members WHERE member = app_user,0 dòng,P0,,Chưa chạy
+TC-ROL-12,Thuộc tính và vai trò (role attributes),"3.2 – 3.4, 3.6.1, 3.6.2",Đối tượng do app_migrator tạo có owner là app_owner,Chạy migration (có SET ROLE app_owner); xem owner,"Owner = app_owner, không phải app_migrator",P0,,Chưa chạy
+TC-CFG-01,Quyền và cấu hình bắt buộc của role,3.6.3,app_user không có pg_read_all_data / pg_write_all_data,Kiểm tra pg_auth_members,Không có,P0,,Chưa chạy
+TC-CFG-02,Quyền và cấu hình bắt buộc của role,3.6.3,"app_user và app_migrator không có pg_read/write_server_files, pg_execute_server_program",Kiểm tra membership; thử COPY ... TO PROGRAM,Không có; lệnh bị từ chối,P0,,Chưa chạy
+TC-CFG-03,Quyền và cấu hình bắt buộc của role,3.6.3,"app_user không có pg_monitor, pg_read_all_stats, pg_signal_backend, pg_checkpoint, pg_maintain",Kiểm tra membership; thử pg_terminate_backend,Không có; bị từ chối,P0,,Chưa chạy
+TC-CFG-04,Quyền và cấu hình bắt buộc của role,3.6.3,"app_owner sở hữu mọi bảng, view, function, sequence",Truy vấn pg_class/pg_proc theo owner,Mọi đối tượng schema ứng dụng có owner = app_owner,P0,,Chưa chạy
+TC-CFG-05,Quyền và cấu hình bắt buộc của role,3.6.3,Mọi bảng nghiệp vụ bật ENABLE + FORCE ROW LEVEL SECURITY,"SELECT relrowsecurity, relforcerowsecurity FROM pg_class",Cả hai = true,P0,,Chưa chạy
+TC-CFG-06,Quyền và cấu hình bắt buộc của role,3.6.3,PUBLIC bị thu quyền trên database; chỉ GRANT CONNECT cho role cần,Kiểm tra has_database_privilege cho PUBLIC,PUBLIC không có CONNECT/TEMP/CREATE,P0,,Chưa chạy
+TC-CFG-07,Quyền và cấu hình bắt buộc của role,3.6.3,Thu TEMP trên database từ PUBLIC,CREATE TEMP TABLE bằng app_user,permission denied,P1,,Chưa chạy
+TC-CFG-08,Quyền và cấu hình bắt buộc của role,3.6.3,Thu CREATE trên schema public; app_user chỉ có USAGE trên schema service,CREATE TABLE/FUNCTION trong schema bằng app_user,permission denied,P0,,Chưa chạy
+TC-CFG-09,Quyền và cấu hình bắt buộc của role,3.6.3,"app_user chỉ có SELECT, INSERT, UPDATE, DELETE (và USAGE sequence)",Kiểm tra information_schema.role_table_grants,"Không có TRUNCATE, REFERENCES, TRIGGER, WITH GRANT OPTION",P0,,Chưa chạy
+TC-CFG-10,Quyền và cấu hình bắt buộc của role,3.6.3,Column-level UPDATE không gồm tenant_id,UPDATE t SET tenant_id = 'B' bằng app_user,permission denied for column tenant_id,P0,,Chưa chạy
+TC-CFG-11,Quyền và cấu hình bắt buộc của role,3.6.3,ALTER ROLE app_user SET row_security = on,SHOW row_security bằng app_user; thử tắt,on; nếu RLS không áp dụng được thì lỗi thay vì lộ dữ liệu,P1,,Chưa chạy
+TC-CFG-12,Quyền và cấu hình bắt buộc của role,3.6.3,ALTER DEFAULT PRIVILEGES FOR ROLE app_owner cấp đúng quyền hẹp,Tạo bảng mới bằng migrator; xem ACL,app_user chỉ có SELECT/INSERT/UPDATE/DELETE; PUBLIC không có,P0,,Chưa chạy
+TC-CFG-13,Quyền và cấu hình bắt buộc của role,3.6.3,pg_hba.conf giới hạn IP/phương thức theo role,Kết nối postgres/app_migrator từ mạng ứng dụng,Bị từ chối; chỉ cho phép từ mạng quản trị/CI,P0,,Chưa chạy
+TC-APP-01,Rò rỉ qua app_user,4.2,app_user tự đổi app.tenant_id (SQL injection/SQL tùy ý),"Chạy SET/SET LOCAL/set_config('app.tenant_id','B') rồi SELECT","Không đọc được dữ liệu B (cần cơ chế chống: tenant_id xác thực/ký, hoặc chặn SQL tùy ý)",P0,,Chưa chạy
+TC-APP-02,Rò rỉ qua app_user,4.2,SET không LOCAL để lại giá trị trên connection pool,Request A dùng SET; request B dùng lại kết nối,Request B không thấy tenant A; code chỉ dùng SET LOCAL,P0,,Chưa chạy
+TC-APP-03,Rò rỉ qua app_user,4.2,UPDATE đổi tenant_id sang tenant khác (policy thiếu WITH CHECK),UPDATE t SET tenant_id='B' WHERE id=...,Bị chặn bởi quyền cột và WITH CHECK,P0,,Chưa chạy
+TC-APP-04,Rò rỉ qua app_user,4.2,INSERT với tenant_id của tenant khác,"INSERT (tenant_id='B', ...) khi context là A","Vi phạm WITH CHECK, báo lỗi",P0,,Chưa chạy
+TC-APP-05,Rò rỉ qua app_user,4.2,Lỗi unique/FK làm lộ dòng của tenant khác,INSERT giá trị trùng với dòng của B,Không báo trùng với B (unique gồm tenant_id); lỗi không chứa giá trị của B,P0,,Chưa chạy
+TC-APP-06,Rò rỉ qua app_user,4.2,View không security_invoker bỏ qua RLS,SELECT qua mọi view bằng app_user,Chỉ thấy dữ liệu tenant hiện tại (security_invoker = true),P0,,Chưa chạy
+TC-APP-07,Rò rỉ qua app_user,4.2,Materialized view chứa dữ liệu mọi tenant,Kiểm tra danh sách matview; app_user SELECT,Không có matview chứa dữ liệu chéo tenant cho app_user,P0,,Chưa chạy
+TC-APP-08,Rò rỉ qua app_user,4.2,Function SECURITY DEFINER bỏ qua RLS,Liệt kê pg_proc.prosecdef; gọi bằng app_user,"Không có hàm DEFINER cho app_user, hoặc hàm tự lọc tenant; EXECUTE đã REVOKE khỏi PUBLIC",P0,,Chưa chạy
+TC-APP-09,Rò rỉ qua app_user,4.2,Hàm/toán tử không leakproof trong WHERE lộ giá trị qua lỗi,WHERE 1/(x-giá_trị_dò)=1 hoặc ép kiểu lỗi trên cột nhạy cảm,Lỗi không in ra giá trị dòng của tenant khác,P0,,Chưa chạy
+TC-APP-10,Rò rỉ qua app_user,4.2,"Đọc catalog (pg_stats, pg_stat_statements, pg_class...) lộ thông tin tenant khác",SELECT các view này bằng app_user,Không thấy câu lệnh/giá trị của tenant khác,P0,,Chưa chạy
+TC-APP-11,Rò rỉ qua app_user,4.2,EXPLAIN [ANALYZE] ở dev lộ số dòng,EXPLAIN ANALYZE bằng app_user trên dev,Chỉ cho phép ở dev; prod bị chặn,P2,,Chưa chạy
+TC-APP-12,Rò rỉ qua app_user,4.2,Sequence lộ tổng số dòng và đoán được ID,Tạo bản ghi liên tiếp ở 2 tenant xen kẽ; quan sát ID,ID không tuần tự toàn cục (dùng UUID) hoặc chấp nhận có rủi ro đã ghi nhận,P1,,Chưa chạy
+TC-APP-13,Rò rỉ qua app_user,4.2,SELECT ... FOR UPDATE bị chặn bởi khóa tenant khác,A giữ khóa dòng; B truy vấn FOR UPDATE,"RLS làm B không thấy dòng của A, không bị chờ",P1,,Chưa chạy
+TC-APP-14,Rò rỉ qua app_user,4.2,COPY đọc/ghi file server,COPY ... TO '/tmp/x',permission denied,P0,,Chưa chạy
+TC-APP-15,Rò rỉ qua app_user,4.2,LISTEN/NOTIFY nghe được thông báo tenant khác,A NOTIFY kênh chung; B LISTEN,Kênh tách theo tenant hoặc không dùng; B không nhận,P1,,Chưa chạy
+TC-APP-16,Rò rỉ qua app_user,4.2,CREATE TEMP TABLE sót trong pool,A tạo bảng tạm; B dùng lại kết nối,Không có quyền TEMP / pool dọn sạch (DISCARD ALL),P1,,Chưa chạy
+TC-APP-17,Rò rỉ qua app_user,4.2,Prepared statement sót khi dùng chung kết nối,A PREPARE; B EXECUTE cùng tên,Không chạy được; pool dọn bằng DISCARD ALL,P1,,Chưa chạy
+TC-APP-18,Rò rỉ qua app_user,4.2,Quên SET LOCAL ngay đầu transaction,Chạy transaction mà câu lệnh đầu chưa đặt tenant,"Trả 0 dòng/lỗi, không chạy với tenant cũ",P0,,Chưa chạy
+TC-MIG-01,Rò rỉ qua app_migrator / migration,4.3,"Policy mới có đủ USING và WITH CHECK, cho mọi loại lệnh",Review/kiểm tự động pg_policies sau migration,Mỗi bảng có policy SELECT/INSERT/UPDATE/DELETE với WITH CHECK đúng,P0,,Chưa chạy
+TC-MIG-02,Rò rỉ qua app_migrator / migration,4.3,Không có migration DISABLE ROW LEVEL SECURITY,Quét migration và so sánh relrowsecurity sau triển khai,Mọi bảng nghiệp vụ vẫn bật RLS,P0,,Chưa chạy
+TC-MIG-03,Rò rỉ qua app_migrator / migration,4.3,Không có migration NO FORCE ROW LEVEL SECURITY,Quét migration và so sánh relforcerowsecurity,Mọi bảng vẫn FORCE,P0,,Chưa chạy
+TC-MIG-04,Rò rỉ qua app_migrator / migration,4.3,"Bảng mới có đủ tenant_id, ENABLE/FORCE RLS và policy",CI kiểm tra mọi bảng trong schema ứng dụng,Pipeline fail nếu thiếu,P0,,Chưa chạy
+TC-MIG-05,Rò rỉ qua app_migrator / migration,4.3,View mới có security_invoker = true,CI quét pg_class/reloptions của view,Fail nếu thiếu,P0,,Chưa chạy
+TC-MIG-06,Rò rỉ qua app_migrator / migration,4.3,Không tạo materialized view chứa dữ liệu mọi tenant,CI quét relkind = 'm',Không có hoặc đã được phê duyệt,P1,,Chưa chạy
+TC-MIG-07,Rò rỉ qua app_migrator / migration,4.3,Function mới không dùng SECURITY DEFINER (hoặc đã phê duyệt),CI quét prosecdef = true,Fail nếu có ngoài danh sách cho phép,P0,,Chưa chạy
+TC-MIG-08,Rò rỉ qua app_migrator / migration,4.3,Trigger mới không đọc/ghi chéo tenant hay đổi tenant_id,Review trigger; test với 2 tenant,Chỉ tác động tenant của dòng,P1,,Chưa chạy
+TC-MIG-09,Rò rỉ qua app_migrator / migration,4.3,Unique index/constraint gồm tenant_id,CI quét pg_index,Mọi unique có tenant_id (trừ bảng dùng chung),P0,,Chưa chạy
+TC-MIG-10,Rò rỉ qua app_migrator / migration,4.3,"Foreign key là FK kép (tenant_id, ...)",CI quét pg_constraint,Mọi FK nghiệp vụ gồm tenant_id,P0,,Chưa chạy
+TC-MIG-11,Rò rỉ qua app_migrator / migration,4.3,ALTER/DROP COLUMN không làm mất tenant_id,Chạy migration thử; kiểm tra policy phụ thuộc,Bị chặn hoặc fail CI,P0,,Chưa chạy
+TC-MIG-12,Rò rỉ qua app_migrator / migration,4.3,ALTER TABLE ... OWNER TO không đổi owner khác app_owner,Quét owner sau migration,Owner luôn là app_owner,P0,,Chưa chạy
+TC-MIG-13,Rò rỉ qua app_migrator / migration,4.3,GRANT trong migration không quá rộng,Diff quyền trước/sau migration,"Không cấp TRUNCATE, cột tenant_id, pg_read_all_data...",P0,,Chưa chạy
+TC-MIG-14,Rò rỉ qua app_migrator / migration,4.3,Không có GRANT app_owner TO app_user,Quét pg_auth_members sau migration,Không có,P0,,Chưa chạy
+TC-MIG-15,Rò rỉ qua app_migrator / migration,4.3,CREATE SCHEMA/EXTENSION/SEQUENCE trong migration có kiểm soát,Quét migration; kiểm tra quyền mặc định,Có phê duyệt; quyền không mở cho PUBLIC,P1,,Chưa chạy
+TC-MIG-16,Rò rỉ qua app_migrator / migration,4.3,Data migration đặt đúng app.tenant_id hoặc xử lý từng tenant,Chạy data migration trên dữ liệu 2 tenant,Không sửa/nhập nhầm tenant khác; không phải tắt RLS,P0,,Chưa chạy
+TC-MIG-17,Rò rỉ qua app_migrator / migration,4.3,SET ROLE / SET SESSION AUTHORIZATION trong migration không nâng quyền,Thử SET ROLE postgres bằng app_migrator,permission denied,P1,,Chưa chạy
+TC-MIG-18,Rò rỉ qua app_migrator / migration,4.3,Log migration/CI không chứa giá trị dữ liệu tenant,Chạy migration lỗi; xem log CI,Log không có giá trị nghiệp vụ,P1,,Chưa chạy
+TC-OBJ-01,Đối tượng mới làm rò rỉ,4.5,Bảng mới đã bật RLS nhưng chưa có policy,SELECT bằng app_user,Chặn hết (0 dòng),P1,,Chưa chạy
+TC-OBJ-02,Đối tượng mới làm rò rỉ,4.5,Bảng mới chưa bật RLS,CI phát hiện bảng chưa bật RLS,Fail pipeline,P0,,Chưa chạy
+TC-OBJ-03,Đối tượng mới làm rò rỉ,4.5,Bảng mới có quyền mặc định đúng (không quyền thừa cho app_user/PUBLIC),Xem ACL bảng mới,Đúng quyền hẹp,P0,,Chưa chạy
+TC-OBJ-04,Đối tượng mới làm rò rỉ,4.5,Partition con không bị truy cập trực tiếp bỏ qua RLS cha,SELECT trực tiếp partition con bằng app_user,Có RLS riêng hoặc không cấp quyền trực tiếp,P0,,Chưa chạy
+TC-OBJ-05,Đối tượng mới làm rò rỉ,4.5,Bảng INHERITS không bỏ qua RLS,SELECT trực tiếp bảng con,Có RLS riêng hoặc bị từ chối,P1,,Chưa chạy
+TC-OBJ-06,Đối tượng mới làm rò rỉ,4.5,Cột mới nhạy cảm được kiểm soát bởi GRANT cột và policy bao phủ,Thêm cột mới; kiểm tra quyền,Không lộ cột ngoài phạm vi tenant,P1,,Chưa chạy
+TC-OBJ-07,Đối tượng mới làm rò rỉ,4.5,Policy PERMISSIVE mới không nới lỏng policy cũ (cộng OR),Thêm policy mới; chạy bộ test 2 tenant,Không có dòng lộ thêm,P0,,Chưa chạy
+TC-OBJ-08,Đối tượng mới làm rò rỉ,4.5,Role mới / thành viên role mới không có BYPASSRLS/SUPERUSER,Quét rolbypassrls/rolsuper và pg_auth_members,Không có ngoài danh sách cho phép,P0,,Chưa chạy
+TC-OBJ-09,Đối tượng mới làm rò rỉ,4.5,Kênh LISTEN/NOTIFY mới tách theo tenant,Review tên kênh,Tên kênh gồm tenant,P1,,Chưa chạy
+TC-OBJ-10,Đối tượng mới làm rò rỉ,4.5,Publication / replication slot mới được phê duyệt,"Quét pg_publication, pg_replication_slots",Không có slot/publication lạ,P1,,Chưa chạy
+TC-OBJ-11,Đối tượng mới làm rò rỉ,4.5,Foreign table / FDW mới không lộ dữ liệu và mật khẩu,"Quét pg_foreign_table, user mapping",Không có hoặc đã kiểm soát,P1,,Chưa chạy
+TC-OBJ-12,Đối tượng mới làm rò rỉ,4.5,Extension mới được kiểm duyệt,Quét pg_extension,Chỉ extension trong danh sách cho phép,P1,,Chưa chạy
+TC-CLU-01,Cấu hình cấp cluster,4.6,pg_hba.conf: phạm vi IP của postgres/app_migrator,Kết nối từ mạng ứng dụng và 0.0.0.0/0,Bị từ chối; chỉ mạng quản trị/CI,P0,,Chưa chạy
+TC-CLU-02,Cấu hình cấp cluster,4.6,pg_hba.conf: không dùng trust/md5/password,Quét pg_hba_file_rules,Chỉ scram-sha-256 hoặc cert,P0,,Chưa chạy
+TC-CLU-03,Cấu hình cấp cluster,4.6,pg_hba.conf: thứ tự dòng không để dòng rộng đứng trước,Xem pg_hba_file_rules theo line_number,Dòng hẹp đứng trước dòng rộng,P1,,Chưa chạy
+TC-CLU-04,Cấu hình cấp cluster,4.6,pg_hba.conf: không dùng database/role 'all' tùy tiện,app_user kết nối vào database khác,Bị từ chối,P1,,Chưa chạy
+TC-CLU-05,Cấu hình cấp cluster,4.6,SSL/TLS bật bắt buộc,Kết nối sslmode=disable,Bị từ chối,P0,,Chưa chạy
+TC-CLU-06,Cấu hình cấp cluster,4.6,password_encryption = scram-sha-256,SHOW password_encryption,scram-sha-256,P1,,Chưa chạy
+TC-CLU-07,Cấu hình cấp cluster,4.6,listen_addresses không mở thừa interface,SHOW listen_addresses; quét cổng,Chỉ interface dự kiến,P1,,Chưa chạy
+TC-CLU-08,Cấu hình cấp cluster,4.6,log_statement / log_min_duration_statement / log_parameter_max_length không ghi tham số tenant,"SHOW; chạy truy vấn có giá trị nhạy cảm, xem log",Log không chứa giá trị tham số,P0,,Chưa chạy
+TC-CLU-09,Cấu hình cấp cluster,4.6,log_min_error_statement / log_error_verbosity không lộ dữ liệu,"Gây lỗi, xem log",Log không chứa giá trị dòng,P1,,Chưa chạy
+TC-CLU-10,Cấu hình cấp cluster,4.6,"log_connections và log_line_prefix đủ thông tin truy vết (role, db, IP)",Kết nối rồi xem log,"Có role, database, IP",P2,,Chưa chạy
+TC-CLU-11,Cấu hình cấp cluster,4.6,shared_preload_libraries / auto_explain / pg_stat_statements kiểm soát,SHOW các tham số; app_user đọc pg_stat_statements,Không lộ nội dung cho app_user; auto_explain không ghi tham số,P0,,Chưa chạy
+TC-CLU-12,Cấu hình cấp cluster,4.6,row_security không bị tắt ở cấp cluster/role,SHOW row_security; pg_db_role_setting,on,P0,,Chưa chạy
+TC-CLU-13,Cấu hình cấp cluster,4.6,"session/local_preload_libraries, allow_system_table_mutations, allow_alter_system bị khóa",SHOW; thử ALTER SYSTEM bằng app_user,Không dùng được,P0,,Chưa chạy
+TC-CLU-14,Cấu hình cấp cluster,4.6,max_prepared_transactions = 0,SHOW max_prepared_transactions,0,P1,,Chưa chạy
+TC-CLU-15,Cấu hình cấp cluster,4.6,max_connections và superuser_reserved_connections hợp lý,"Mở hết kết nối bằng app_user, thử đăng nhập quản trị",Quản trị vẫn kết nối được bằng kết nối dự phòng,P2,,Chưa chạy
+TC-CLU-16,Cấu hình cấp cluster,4.6,search_path mặc định không chứa schema không tin cậy,SHOW search_path bằng app_user,Không có public ghi được; schema tường minh,P0,,Chưa chạy
+TC-CLU-17,Cấu hình cấp cluster,4.6,"wal_level, archive_mode, archive_command, WAL senders/slots hợp lý",SHOW; kiểm tra đích lưu trữ,"Đích mã hóa, quyền hẹp",P1,,Chưa chạy
+TC-CLU-18,Cấu hình cấp cluster,4.6,Quyền data_directory và unix_socket_permissions hẹp,ls -l trên máy chủ,Chỉ user postgres,P1,,Chưa chạy
+TC-CLU-19,Cấu hình cấp cluster,4.6,Trusted extension không cài được bởi role ứng dụng,CREATE EXTENSION bằng app_user,permission denied,P0,,Chưa chạy
+TC-CLU-20,Cấu hình cấp cluster,4.6,Quyền mặc định PUBLIC; DB nâng cấp từ bản cũ,Kiểm tra CREATE trên schema public,PUBLIC không có CREATE,P0,,Chưa chạy
+TC-CLU-21,Cấu hình cấp cluster,4.6,template1 sạch quyền/đối tượng lạ,Quét template1,Không có đối tượng/quyền thừa,P2,,Chưa chạy
+TC-CLU-22,Cấu hình cấp cluster,4.6,"Cấu hình dịch vụ managed (rds_superuser, snapshot tự động, console)",Rà soát IAM/console/parameter group,Quyền tối thiểu; snapshot mã hóa,P1,,Chưa chạy
+TC-GRT-01,Lệch quyền gián tiếp (config drift),4.7,Phát hiện app_user/app_migrator bị gán SUPERUSER hoặc BYPASSRLS,Job kiểm tra định kỳ pg_roles so với baseline,Cảnh báo ngay khi lệch,P0,,Chưa chạy
+TC-GRT-02,Lệch quyền gián tiếp (config drift),4.7,app_owner bị đổi thành LOGIN hoặc đặt mật khẩu,Quét rolcanlogin/rolpassword,Cảnh báo,P0,,Chưa chạy
+TC-GRT-03,Lệch quyền gián tiếp (config drift),4.7,CREATEROLE/CREATEDB/REPLICATION bị bật cho role ứng dụng,Quét pg_roles,Cảnh báo,P0,,Chưa chạy
+TC-GRT-04,Lệch quyền gián tiếp (config drift),4.7,"ALTER ROLE ... SET bị đổi (row_security=off, search_path lạ, session_replication_role=replica)",Quét pg_db_role_setting,Không có giá trị lệch baseline,P0,,Chưa chạy
+TC-GRT-05,Lệch quyền gián tiếp (config drift),4.7,session_replication_role = replica vô hiệu hóa trigger/FK,Thử SET session_replication_role bằng app_user,permission denied,P0,,Chưa chạy
+TC-GRT-06,Lệch quyền gián tiếp (config drift),4.7,"app_user bị GRANT thành viên role mạnh (kể cả WITH SET/INHERIT, PG16+)","Quét pg_auth_members (set_option, inherit_option)",Không có,P0,,Chưa chạy
+TC-GRT-07,Lệch quyền gián tiếp (config drift),4.7,"GRANT TRUNCATE/REFERENCES/TRIGGER, WITH GRANT OPTION cho app_user",Quét role_table_grants,Không có,P0,,Chưa chạy
+TC-GRT-08,Lệch quyền gián tiếp (config drift),4.7,GRANT UPDATE toàn bảng thay vì theo cột,Quét column privileges,"Chỉ cột được phép, không có tenant_id",P0,,Chưa chạy
+TC-GRT-09,Lệch quyền gián tiếp (config drift),4.7,"Quyền cấp cho PUBLIC (SELECT bảng, EXECUTE function)",Quét ACL có grantee = PUBLIC,Không có ngoài danh sách cho phép,P0,,Chưa chạy
+TC-GRT-10,Lệch quyền gián tiếp (config drift),4.7,EXECUTE hàm SECURITY DEFINER còn cho PUBLIC,Quét proacl của hàm DEFINER,Đã REVOKE khỏi PUBLIC,P0,,Chưa chạy
+TC-GRT-11,Lệch quyền gián tiếp (config drift),4.7,GRANT CREATE ON SCHEMA/DATABASE cho app_user,Quét has_schema_privilege/has_database_privilege,false,P0,,Chưa chạy
+TC-GRT-12,Lệch quyền gián tiếp (config drift),4.7,GRANT CONNECT lên database khác,app_user kết nối database khác,Bị từ chối,P1,,Chưa chạy
+TC-GRT-13,Lệch quyền gián tiếp (config drift),4.7,Đối tượng đổi owner hoặc do postgres/app_user tạo,Quét owner khác app_owner,Không có,P0,,Chưa chạy
+TC-GRT-14,Lệch quyền gián tiếp (config drift),4.7,USAGE/UPDATE trên sequence cấp dùng chung,setval/currval bằng app_user,Không setval được; USAGE đúng phạm vi,P1,,Chưa chạy
+TC-GRT-15,Lệch quyền gián tiếp (config drift),4.7,Thay đổi thủ công/console ngoài pipeline,So sánh trạng thái thực với code (drift detection),Phát hiện và cảnh báo,P1,,Chưa chạy
+TC-CON-01,Dùng chung connection (connection pool),4.8,app.tenant_id không rò giữa các request (SET LOCAL),"Chạy 2 request A, B liên tiếp trên cùng kết nối",Mỗi request đúng tenant của mình,P0,,Chưa chạy
+TC-CON-02,Dùng chung connection (connection pool),4.8,Request thiếu tenant_id,Gửi request không đặt tenant,"Không có dòng/lỗi rõ ràng, không dùng giá trị cũ",P0,,Chưa chạy
+TC-CON-03,Dùng chung connection (connection pool),4.8,PgBouncer chế độ transaction: SET và truy vấn cùng transaction,Chạy SET LOCAL và truy vấn trong một transaction qua PgBouncer,Đúng tenant,P0,,Chưa chạy
+TC-CON-04,Dùng chung connection (connection pool),4.8,COMMIT sớm sau SET LOCAL trong cùng request,Kiểm tra luồng code nhiều transaction trong 1 request,Mỗi transaction đều đặt lại tenant,P0,,Chưa chạy
+TC-CON-05,Dùng chung connection (connection pool),4.8,SET ROLE / SESSION AUTHORIZATION sót,Request A đổi role; request B dùng lại,Role về mặc định (RESET/DISCARD ALL),P1,,Chưa chạy
+TC-CON-06,Dùng chung connection (connection pool),4.8,"Tham số phiên (search_path, row_security, session_replication_role, statement_timeout) sót",A đổi tham số; B kiểm tra SHOW,Về giá trị mặc định,P1,,Chưa chạy
+TC-CON-07,Dùng chung connection (connection pool),4.8,Bảng tạm sót / che bảng thật,A tạo temp table trùng tên bảng thật,Không tạo được; hoặc bị dọn,P1,,Chưa chạy
+TC-CON-08,Dùng chung connection (connection pool),4.8,Prepared statement trùng tên / generic plan sai tenant,"A, B PREPARE cùng tên; chạy generic plan",Không chạy nhầm tenant,P1,,Chưa chạy
+TC-CON-09,Dùng chung connection (connection pool),4.8,Cursor WITH HOLD sót,A DECLARE CURSOR WITH HOLD; B dùng lại,Cursor bị đóng khi trả kết nối,P2,,Chưa chạy
+TC-CON-10,Dùng chung connection (connection pool),4.8,LISTEN còn đăng ký khi trả kết nối,A LISTEN; trả pool; B nhận NOTIFY,UNLISTEN/DISCARD ALL khi trả kết nối,P1,,Chưa chạy
+TC-CON-11,Dùng chung connection (connection pool),4.8,Advisory lock mức phiên sót,A pg_advisory_lock không unlock; B lấy khóa,Khóa được giải phóng khi trả kết nối,P1,,Chưa chạy
+TC-CON-12,Dùng chung connection (connection pool),4.8,lastval()/currval() trả giá trị của request trước,A INSERT; B gọi lastval(),Lỗi hoặc không lộ ID của A,P1,,Chưa chạy
+TC-CON-13,Dùng chung connection (connection pool),4.8,Transaction idle in transaction còn giữ SET LOCAL/snapshot,Treo transaction rồi trả kết nối,Pool ROLLBACK; có idle_in_transaction_session_timeout,P1,,Chưa chạy
+TC-CON-14,Dùng chung connection (connection pool),4.8,"Biến tùy chỉnh khác (app.user_id, app.role) sót",A đặt app.user_id; B kiểm tra current_setting,Rỗng/được đặt lại,P1,,Chưa chạy
+TC-CON-15,Dùng chung connection (connection pool),4.8,Transaction aborted không ROLLBACK,Gây lỗi trong transaction rồi trả kết nối,Pool tự ROLLBACK; request sau chạy bình thường,P1,,Chưa chạy
+TC-CON-16,Dùng chung connection (connection pool),4.8,Request bị hủy/timeout giữa chừng,Hủy request khi đang chạy truy vấn,"Truy vấn bị hủy, kết nối được làm sạch trước khi tái sử dụng",P1,,Chưa chạy
+TC-CON-17,Dùng chung connection (connection pool),4.8,Prepared transaction treo,Kiểm tra pg_prepared_xacts,Rỗng,P1,,Chưa chạy
+TC-CON-18,Dùng chung connection (connection pool),4.8,Session pooling dùng kết nối dài hạn: trạng thái cộng dồn,Chạy chuỗi nhiều tenant; DISCARD ALL giữa các lần,Không còn trạng thái sót,P1,,Chưa chạy
+TC-CON-19,Dùng chung connection (connection pool),4.8,Pool dùng chung giữa các service/role,Kiểm tra cấu hình pool,Mỗi role/service một pool riêng,P1,,Chưa chạy
+TC-SID-01,Side channel,4.9,Thời gian phản hồi bị tác động bởi tải tenant khác (noisy neighbor),"Tạo tải nặng ở B, đo độ trễ A",Độ trễ A trong ngưỡng; có giới hạn tài nguyên/timeout,P2,,Chưa chạy
+TC-SID-02,Side channel,4.9,Thời gian thực thi theo giá trị dò (WHERE email = ...),"Dò giá trị có/không có ở tenant khác, đo thời gian",Không phân biệt được thống kê,P2,,Chưa chạy
+TC-SID-03,Side channel,4.9,Khóa dòng/khóa bảng của tenant khác,B giữ khóa; A thao tác bảng đó,A không bị chờ vì khóa của B (kiểm tra DDL/khóa bảng),P1,,Chưa chạy
+TC-SID-04,Side channel,4.9,Advisory lock trùng khóa số nguyên giữa tenant,"A, B cùng khóa số","Khóa số có chứa tenant, không chặn nhau",P1,,Chưa chạy
+TC-SID-05,Side channel,4.9,Lỗi unique/FK/exclusion lộ dòng tenant khác,Chèn giá trị trùng giữa 2 tenant,Không báo lỗi trùng chéo tenant,P0,,Chưa chạy
+TC-SID-06,Side channel,4.9,Thông báo lỗi từ hàm không leakproof,Truy vấn gây chia 0/ép kiểu trên dữ liệu chưa lọc,Không in giá trị tenant khác,P0,,Chưa chạy
+TC-SID-07,Side channel,4.9,Giá trị sequence lộ tốc độ tạo dòng,Quan sát ID tạo ở A khi B hoạt động,Dùng UUID hoặc đã chấp nhận rủi ro,P2,,Chưa chạy
+TC-SID-08,Side channel,4.9,pg_stats / pg_class.reltuples / pg_total_relation_size,SELECT bằng app_user,Không truy cập được thống kê bảng chung,P1,,Chưa chạy
+TC-SID-09,Side channel,4.9,pg_stat_statements / pg_stat_activity,SELECT bằng app_user,Không thấy câu lệnh tenant khác,P0,,Chưa chạy
+TC-SID-10,Side channel,4.9,EXPLAIN / EXPLAIN ANALYZE,Chạy bằng app_user ở prod,Bị chặn,P1,,Chưa chạy
+TC-SID-11,Side channel,4.9,Số dòng affected rows / COUNT nhất quán,UPDATE/DELETE/COUNT với dữ liệu 2 tenant,Số dòng chỉ tính tenant hiện tại,P1,,Chưa chạy
+TC-SID-12,Side channel,4.9,Thứ tự và phân trang dựa trên ID toàn cục,Phân trang trên bảng nhiều tenant,Không lộ khoảng cách ID; dùng cursor theo tenant,P2,,Chưa chạy
+TC-SID-13,Side channel,4.9,Cache (shared buffers / cache ứng dụng) làm lộ qua thời gian,Đo thời gian truy vấn lần đầu và lặp lại,Khóa cache theo tenant; chấp nhận rủi ro shared buffers,P2,,Chưa chạy
+TC-SID-14,Side channel,4.9,"Số kết nối, hàng đợi pool, statement_timeout",Một tenant chiếm hết pool,Có giới hạn kết nối/hạn mức theo tenant,P2,,Chưa chạy
+TC-SID-15,Side channel,4.9,Autovacuum/WAL/replication lag theo hoạt động tenant khác,"Ghi nặng ở B, đo A",Không suy ra được chi tiết từ API người dùng,P3,,Chưa chạy
+TC-OUT-01,Dữ liệu nằm ngoài bảng,4.10,WAL và logical decoding không đọc được bởi role ứng dụng,pg_logical_slot_get_changes bằng app_user,permission denied,P0,,Chưa chạy
+TC-OUT-02,Dữ liệu nằm ngoài bảng,4.10,File dữ liệu (data_directory) không truy cập được ngoài postgres,Đọc file từ user OS khác,permission denied,P0,,Chưa chạy
+TC-OUT-03,Dữ liệu nằm ngoài bảng,4.10,"Backup logic (pg_dump) lưu mã hóa, quyền hẹp","Kiểm tra vị trí, quyền, mã hóa file dump",Mã hóa; chỉ role backup đọc,P0,,Chưa chạy
+TC-OUT-04,Dữ liệu nằm ngoài bảng,4.10,Backup vật lý/snapshot mã hóa và quyền hẹp,Kiểm tra quyền truy cập snapshot,Mã hóa; quyền tối thiểu,P0,,Chưa chạy
+TC-OUT-05,Dữ liệu nằm ngoài bảng,4.10,Archive WAL (PITR) mã hóa và quyền hẹp,Kiểm tra kho lưu trữ,Mã hóa; quyền tối thiểu,P1,,Chưa chạy
+TC-OUT-06,Dữ liệu nằm ngoài bảng,4.10,Replica/standby: role và cách ly tương đương primary,Đăng nhập replica bằng role ứng dụng,Cùng cấu hình RLS/quyền,P1,,Chưa chạy
+TC-OUT-07,Dữ liệu nằm ngoài bảng,4.10,"Replication slot/publication/CDC (Debezium, Kafka) kiểm soát",Rà soát luồng CDC và nội dung gửi ra,"Có kiểm soát truy cập, có tenant_id, mã hóa",P1,,Chưa chạy
+TC-OUT-08,Dữ liệu nằm ngoài bảng,4.10,Log Postgres không chứa tham số/giá trị dòng và quyền đọc hẹp,Chạy truy vấn mẫu rồi tìm giá trị trong log,Không tìm thấy giá trị nhạy cảm,P0,,Chưa chạy
+TC-OUT-09,Dữ liệu nằm ngoài bảng,4.10,pg_stat_statements / auto_explain không lộ cho role ứng dụng,SELECT bằng app_user,Bị từ chối,P0,,Chưa chạy
+TC-OUT-10,Dữ liệu nằm ngoài bảng,4.10,"File tạm (pgsql_tmp), bảng tạm không lộ dữ liệu",Kiểm tra quyền thư mục và dọn dẹp,Quyền hẹp; dọn sau truy vấn,P2,,Chưa chạy
+TC-OUT-11,Dữ liệu nằm ngoài bảng,4.10,Core dump/swap không chứa dữ liệu nhạy cảm,Rà soát cấu hình OS,Tắt core dump hoặc mã hóa swap,P2,,Chưa chạy
+TC-OUT-12,Dữ liệu nằm ngoài bảng,4.10,Large Objects (pg_largeobject) có kiểm soát quyền,Truy cập lo_* bằng app_user,Không dùng hoặc có tách theo tenant,P1,,Chưa chạy
+TC-OUT-13,Dữ liệu nằm ngoài bảng,4.10,FDW/user mapping không lộ mật khẩu,Đọc pg_user_mappings bằng app_user,Không thấy mật khẩu,P1,,Chưa chạy
+TC-OUT-14,Dữ liệu nằm ngoài bảng,4.10,"Extension kiểm tra trang (pageinspect, pg_buffercache, pgstattuple, pg_visibility) không cấp cho role ứng dụng",Gọi hàm bằng app_user,permission denied,P0,,Chưa chạy
+TC-OUT-15,Dữ liệu nằm ngoài bảng,4.10,"Index extension (full-text, pg_trgm, vector, PostGIS) không lộ chéo tenant",Tìm kiếm tenant A trên dữ liệu B,Kết quả được lọc theo tenant,P1,,Chưa chạy
+TC-OUT-16,Dữ liệu nằm ngoài bảng,4.10,COPY TO PROGRAM / TO file bị chặn,"Chạy bằng app_user, app_migrator",permission denied,P0,,Chưa chạy
+TC-OUT-17,Dữ liệu nằm ngoài bảng,4.10,"File export/CSV tách theo tenant, không lưu thư mục chung","Xuất báo cáo tenant A, kiểm tra nội dung và đường dẫn",Chỉ dữ liệu A; thư mục riêng,P0,,Chưa chạy
+TC-OUT-18,Dữ liệu nằm ngoài bảng,4.10,Data warehouse/ETL/search index/cache mang theo tenant_id và quyền,Rà soát luồng ETL; truy vấn kho bằng tenant A,"Có tenant_id, lọc đúng",P0,,Chưa chạy
+TC-OUT-19,Dữ liệu nằm ngoài bảng,4.10,"Thông tin xác thực (pg_authid, .pgpass, biến môi trường, secret manager)","Quét repo, image, log tìm secret; kiểm tra quyền đọc","Không lộ; secret ở secret manager, quyền hẹp",P0,,Chưa chạy
+TC-OUT-20,Dữ liệu nằm ngoài bảng,4.10,Snapshot dịch vụ managed không chia sẻ ngoài ý muốn,Rà soát chia sẻ snapshot/quyền console,Không chia sẻ ngoài tài khoản,P1,,Chưa chạy
+TC-OUT-21,Dữ liệu nằm ngoài bảng,4.10,Môi trường dev/test không chứa dữ liệu production chưa ẩn danh,Kiểm tra dữ liệu dev/test,Đã ẩn danh/che dữ liệu,P0,,Chưa chạy
