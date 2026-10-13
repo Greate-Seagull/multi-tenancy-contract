@@ -22,14 +22,7 @@
 {{- toYaml $out -}}
 {{- end }}
 
-{{/* command của group + từng file kèm -f. Dùng: (dict "group" . "root" $) */}}
+{{/* command của group - chỉ trả về g.command */}}
 {{- define "contract.command" -}}
-{{- $g := .group -}}
-{{- $cmd := $g.command -}}
-{{- $files := default (list) $g.files -}}
-{{- if and .root.Values.contractTests.allowlist $g.allowlist $files -}}
-  {{- $files = concat (initial $files) (list "/extra/allowlist.sql") (list (last $files)) -}}
-{{- end -}}
-{{- range $files }}{{ $cmd = concat $cmd (list "-f" .) }}{{ end -}}
-{{- toYaml $cmd -}}
+{{- toYaml .group.command -}}
 {{- end }}
