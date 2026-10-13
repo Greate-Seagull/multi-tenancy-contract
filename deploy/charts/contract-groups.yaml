@@ -4,6 +4,7 @@ groups:
   - name: contract-test
     role: app
     command: -k "not tbl"
+    files: []
 
 #  - name: current-tenant-id
 #    role: app
