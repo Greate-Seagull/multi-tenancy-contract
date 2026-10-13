@@ -22,7 +22,11 @@
 {{- toYaml $out -}}
 {{- end }}
 
-{{/* command của group - chỉ trả về g.command */}}
 {{- define "contract.command" -}}
-{{- toYaml .group.command -}}
+{{- $cmd := .group.command -}}
+{{- if kindIs "slice" $cmd -}}
+{{- toYaml $cmd -}}
+{{- else -}}
+{{- list $cmd | toYaml -}}
+{{- end -}}
 {{- end }}

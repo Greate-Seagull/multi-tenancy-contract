@@ -21,7 +21,8 @@ spec:
         {{- range (include "contract.groups" . | fromYamlArray) }}
         - name: {{ .name }}
           image: {{ required "contractTests.image is required" $.Values.contractTests.image | quote }}
-          command:
+{{/*          command:*/}}
+          args:
             {{- include "contract.command" (dict "group" . "root" $) | nindent 12 }}
           env:
             - name: PGHOST
