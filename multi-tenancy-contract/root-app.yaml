@@ -1,0 +1,32 @@
+#- **Khai báo Application `root`** trong namespace `argocd`, dùng project `default`. Chỉ cần `kubectl apply` tay đúng một lần, sau đó mọi thứ khác do Git quản lý.
+#- **Trỏ tới repo Git** `multi-tenancy-contract`, nhánh `master`, thư mục `apps/` (không đệ quy, `recurse: false`). Mỗi file YAML trong thư mục này là một Application con (Vault, chính Argo CD, v.v.) và sẽ được Argo CD tạo ra.
+#- **Triển khai vào chính cluster đang chạy Argo CD** (`https://kubernetes.default.svc`, namespace `argocd`), vì các Application con là tài nguyên nằm trong namespace này.
+#- **Tự động đồng bộ** (`automated`): khi Git thay đổi, cluster tự cập nhật theo mà không cần bấm sync.
+#- **`prune: false`**: xóa file Application khỏi Git sẽ không tự xóa nó khỏi cluster. Bạn phải xóa tay có chủ ý, tránh mất nhầm tài nguyên có trạng thái như dữ liệu Vault.
+#- **`selfHeal: true`**: nếu ai đó sửa tay Application trên cluster, Argo CD sẽ khôi phục về đúng như trong Git.
+#- **Không đặt finalizer** (cố ý): xóa Application `root` sẽ không kéo theo xóa dây chuyền các Application con.
+#- **`CreateNamespace=true`**: tự tạo namespace đích nếu chưa tồn tại.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  # Cố ý KHÔNG đặt finalizer: xóa Application gốc không được kéo theo xóa dây chuyền
+  # các Application con (đặc biệt là Vault, nơi giữ dữ liệu).
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+    targetRevision: master
+    path: apps
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false      # gỡ Application khỏi Git không tự xóa; xóa tay có chủ đích để tránh mất nhầm tài nguyên có trạng thái
+      selfHeal: true    # ai sửa tay Application trên cluster sẽ bị khôi phục về đúng như trong Git
+    syncOptions:
+      - CreateNamespace=true

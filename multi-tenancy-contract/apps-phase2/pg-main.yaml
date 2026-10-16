@@ -1,0 +1,30 @@
+# Giai đoạn 2b: cluster CNPG + cert replication + CA client.
+#
+# Nằm ngoài apps/ vì cùng lý do với pg-main-vault.yaml (xem comment ở đó).
+# Áp bằng tay ở BOOTSTRAP.md bước 8:  kubectl apply -f apps-phase2/pg-main.yaml
+# rồi bấm sync thủ công, chỉ sau khi pg-main-vault đã sync, intermediate CA đã được ký
+# và values/pg-main.yaml đã có postgres.clientCaChain.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pg-main
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      path: charts/pg-main
+      helm:
+        releaseName: pg-main
+        valueFiles:
+          - $values/values/pg-main.yaml
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pg-main
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

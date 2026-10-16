@@ -1,0 +1,51 @@
+# Vault Config Operator. Trỏ tới Vault qua biến môi trường chuẩn của Vault (VAULT_ADDR, VAULT_CACERT).
+# ConfigMap vault-ca (CA của Vault) do chart pg-main-vault tạo ở giai đoạn 2; volume để optional
+# nên pod vẫn khởi động trước đó và tự thấy file khi ConfigMap xuất hiện.
+# Mỗi CR của VCO tự đăng nhập Vault bằng ServiceAccount vault-config trong namespace của CR (xem chart pg-main-vault).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault-config-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://redhat-cop.github.io/vault-config-operator
+    chart: vault-config-operator
+    targetRevision: 1.0.3
+    helm:
+      releaseName: vault-config-operator
+      valuesObject:
+        enableMonitoring: false   # tránh tạo ServiceMonitor khi cluster chưa có Prometheus Operator (sẽ làm kẹt wave này)
+        env:
+          - name: VAULT_ADDR
+            value: https://vault.vault.svc:8200
+          - name: VAULT_CACERT
+            value: /etc/vault-ca/ca.crt
+        volumes:
+          - name: vault-ca
+            configMap:
+              name: vault-ca
+              optional: true
+        volumeMounts:
+          - name: vault-ca
+            mountPath: /etc/vault-ca
+            readOnly: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault-config-operator
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

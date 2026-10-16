@@ -1,0 +1,77 @@
+---
+# 1) Issuer self-signed, chỉ dùng để tự ký CA nội bộ bên dưới
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: vault-selfsigned
+  namespace: vault
+spec:
+  selfSigned: {}
+---
+# 2) CA nội bộ của Vault (Secret vault-ca chứa khóa riêng của CA này)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-ca
+  namespace: vault
+spec:
+  isCA: true
+  commonName: vault-internal-ca
+  secretName: vault-ca
+  duration: 43800h        # 5 năm
+  renewBefore: 8760h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: vault-selfsigned
+    kind: Issuer
+    group: cert-manager.io
+---
+# 3) Issuer ký bằng CA ở trên
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: vault-ca-issuer
+  namespace: vault
+spec:
+  ca:
+    secretName: vault-ca
+---
+# 4) Cert TLS cho các pod Vault -> Secret vault-tls (tls.crt, tls.key, ca.crt)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-tls
+  namespace: vault
+spec:
+  secretName: vault-tls
+  commonName: vault.vault.svc
+  dnsNames:
+    - vault
+    - vault.vault
+    - vault.vault.svc
+    - vault.vault.svc.cluster.local
+    - vault-active
+    - vault-active.vault.svc
+    - vault-standby
+    - vault-standby.vault.svc
+    - vault-internal
+    - "*.vault-internal"
+    - "*.vault-internal.vault.svc"
+    - "*.vault-internal.vault.svc.cluster.local"
+  ipAddresses:
+    - 127.0.0.1
+  usages:
+    - server auth
+    - client auth
+  duration: 2160h         # 90 ngày
+  renewBefore: 720h       # gia hạn trước 30 ngày
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: vault-ca-issuer
+    kind: Issuer
+    group: cert-manager.io

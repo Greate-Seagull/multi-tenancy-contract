@@ -1,0 +1,20 @@
+name: verify-contract
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'multi-tenancy-contract/**'
+      - '.github/workflows/deploy-test.yaml'
+  workflow_dispatch:
+
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1        # kind 1 node, đã kèm kubectl
+      - run: ./ci/run.sh
+      - run: ./ci/log.sh

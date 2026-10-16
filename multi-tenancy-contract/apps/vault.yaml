@@ -1,0 +1,38 @@
+# Vault HA (Raft). Wave cuối của giai đoạn 1: pod có thể chưa Ready cho đến khi init và unseal,
+# nên không đặt bất kỳ thứ gì phía sau nó mà phụ thuộc vào health.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  # Cố ý KHÔNG đặt finalizer: xóa Application không được kéo theo xóa Vault.
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: vault
+      targetRevision: 0.34.1
+      helm:
+        releaseName: vault
+        valueFiles:
+          - $values/values/vault-values.yaml
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault
+  syncPolicy:
+    automated:
+      prune: false         # Vault giữ dữ liệu, không tự xóa tài nguyên
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

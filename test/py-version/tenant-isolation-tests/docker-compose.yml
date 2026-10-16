@@ -1,0 +1,52 @@
+x-flyway-env: &flyway-env
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/${PGDATABASE:?}
+  FLYWAY_USER: ${MIG_USER:?}
+  FLYWAY_PASSWORD: ${MIG_PASSWORD:?}
+  FLYWAY_CONNECT_RETRIES: 10
+  FLYWAY_CREATE_SCHEMAS: "false"
+  FLYWAY_INIT_SQL: SET ROLE app_owner
+
+x-flyway: &flyway
+  image: flyway/flyway:11
+  profiles: ["tools"]
+  depends_on:
+    postgres: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:${PG_VERSION:-18-bookworm}
+    environment:
+      POSTGRES_USER: ${PGUSER:?}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?}
+      POSTGRES_DB: ${PGDATABASE:?}
+      POSTGRES_INITDB_ARGS: "--auth-local=scram-sha-256 --auth-host=scram-sha-256"
+    ports:
+      - "127.0.0.1:${PGPORT:?}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - ../../../contract/bootstrap/bootstrap.sql:/docker-entrypoint-initdb.d/00-bootstrap.sql:ro
+      - ../../resources/bootstraps/01-test-passwords.sql:/docker-entrypoint-initdb.d/01-test-passwords.sql:ro
+
+  flyway-contract:
+    <<: *flyway
+    environment:
+      <<: *flyway-env
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql/contract
+      FLYWAY_DEFAULT_SCHEMA: contract
+      FLYWAY_SCHEMAS: contract
+    volumes:
+      - ../../../contract/migration-base:/flyway/sql/contract:ro
+
+  flyway-service:
+    <<: *flyway
+    environment:
+      <<: *flyway-env
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql/service
+      FLYWAY_DEFAULT_SCHEMA: service
+      FLYWAY_SCHEMAS: service
+    volumes:
+      - ../../resources/migrations:/flyway/sql/service:ro

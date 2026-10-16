@@ -7,7 +7,7 @@ USER root
 RUN adduser -D -u 10001 psql
 
 COPY --chmod=755 bootstrap.sh /opt/bootstrap/bootstrap.sh
-COPY bootstrap.sql /opt/bootstrap/bootstrap.sql
+COPY bootstrap-exec.sql /opt/bootstrap/bootstrap-exec.sql
 
 USER 10001
 

@@ -1,0 +1,65 @@
+name: verify-contract
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'contract/**'
+      - 'test/**'
+      - '.github/workflows/verify.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: test/py-version/tenant-isolation-tests
+    env:
+      PG_VERSION: "18-bookworm"
+      PGDATABASE: test
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: test
+      MIG_USER: app_migrator
+      MIG_PASSWORD: test
+      APP_USER: app_user
+      APP_PASSWORD: test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@v5   # nên pin SHA như checkout
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: test/py-version/tenant-isolation-tests/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Dựng Postgres
+        run: docker compose up -d --wait
+
+      - name: Migrate contract
+        run: docker compose run --rm flyway-contract migrate
+
+      - name: Migrate service
+        run: docker compose run --rm flyway-service migrate
+
+      - name: Chạy test
+        env:
+          ADMIN_USER: ${{ env.PGUSER }}
+          ADMIN_PASSWORD: ${{ env.PGPASSWORD }}
+          APP_ENV: dev
+        run: pytest -v
+
+      - name: Log Postgres khi fail
+        if: failure()
+        run: docker compose logs postgres &&
+          docker compose exec -e PGPASSWORD postgres psql -U postgres -d test -c \
+           "SELECT datacl, pg_get_userbyid(datdba) FROM pg_database WHERE datname=current_database();"

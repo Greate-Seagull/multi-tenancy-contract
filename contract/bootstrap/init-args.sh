@@ -1,0 +1,2 @@
+--auth-local=scram-sha-256 \
+--auth-host=scram-sha-256
