@@ -1,3 +1,17 @@
+x-flyway-env: &flyway-env
+  FLYWAY_URL: jdbc:postgresql://postgres:5432/${PGDATABASE:?}
+  FLYWAY_USER: ${MIG_USER:?}
+  FLYWAY_PASSWORD: ${MIG_PASSWORD:?}
+  FLYWAY_CONNECT_RETRIES: 10
+  FLYWAY_CREATE_SCHEMAS: "false"
+  FLYWAY_INIT_SQL: SET ROLE app_owner
+
+x-flyway: &flyway
+  image: flyway/flyway:11
+  profiles: ["tools"]
+  depends_on:
+    postgres: { condition: service_healthy }
+
 services:
   postgres:
     image: postgres:${PG_VERSION:-18-bookworm}
@@ -13,18 +27,26 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
-
-  flyway:
-    image: flyway/flyway:11
-    profiles: [ "tools" ]          # `docker compose up` sẽ không tự chạy service này
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      FLYWAY_URL: jdbc:postgresql://postgres:5432/${PGDATABASE:?}
-      FLYWAY_USER: ${MIG_USER:?}
-      FLYWAY_PASSWORD: ${MIG_PASSWORD:?}
-      FLYWAY_LOCATIONS: filesystem:/flyway/sql
-      FLYWAY_CONNECT_RETRIES: 10
     volumes:
-      - ../../../contract/migrations:/flyway/sql:ro   # đường dẫn tính từ vị trí compose file
+      - ../../../contract/bootstrap/bootstrap.sql:/docker-entrypoint-initdb.d/00-bootstrap.sql:ro
+      - ../../test/resources/01-test-passwords.sql:/docker-entrypoint-initdb.d/01-test-passwords.sql:ro
+
+  flyway-contract:
+    <<: *flyway
+    environment:
+      <<: *flyway-env
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql/contract
+      FLYWAY_DEFAULT_SCHEMA: contract
+      FLYWAY_SCHEMAS: contract
+    volumes:
+      - ../../../contract/migrations:/flyway/sql/contract:ro
+
+  flyway-service:
+    <<: *flyway
+    environment:
+      <<: *flyway-env
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql/service
+      FLYWAY_DEFAULT_SCHEMA: service
+      FLYWAY_SCHEMAS: service
+    volumes:
+      - ../../test/resources/migrations:/flyway/sql/service:ro

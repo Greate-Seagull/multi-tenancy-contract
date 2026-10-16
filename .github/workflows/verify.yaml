@@ -26,8 +26,11 @@ jobs:
       PGHOST: 127.0.0.1
       PGPORT: "5432"
       PGUSER: postgres
+      PGPASSWORD: test
       MIG_USER: app_migrator
+      MIG_PASSWORD: test
       APP_USER: app_user
+      APP_PASSWORD: test
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -39,22 +42,14 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Sinh password cho role
-        run: |
-          for v in PGPASSWORD MIG_PASSWORD APP_PASSWORD; do
-            pw=$(openssl rand -hex 16)
-            echo "::add-mask::$pw"
-            echo "$v=$pw" >> "$GITHUB_ENV"
-          done
-
       - name: Dựng Postgres
         run: docker compose up -d --wait
 
-      - name: Setup role (bootstrap + password)
-        run: python dbsetup.py
+      - name: Migrate contract
+        run: docker compose run --rm flyway-contract migrate
 
-      - name: Migrate (Flyway)
-        run: python migrate.py
+      - name: Migrate service
+        run: docker compose run --rm flyway-service migrate
 
       - name: Chạy test
         env:
