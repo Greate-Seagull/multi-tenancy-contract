@@ -39,7 +39,7 @@ services:
       FLYWAY_DEFAULT_SCHEMA: contract
       FLYWAY_SCHEMAS: contract
     volumes:
-      - ../../../contract/migrations:/flyway/sql/contract:ro
+      - ../../../contract/migration-base:/flyway/sql/contract:ro
 
   flyway-service:
     <<: *flyway
@@ -49,4 +49,4 @@ services:
       FLYWAY_DEFAULT_SCHEMA: service
       FLYWAY_SCHEMAS: service
     volumes:
-      - ../../test/resources/migrations:/flyway/sql/service:ro
+      - ../../resources/migrations:/flyway/sql/service:ro
