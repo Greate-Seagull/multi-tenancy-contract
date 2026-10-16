@@ -13,3 +13,18 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+
+  flyway:
+    image: flyway/flyway:11
+    profiles: [ "tools" ]          # `docker compose up` sẽ không tự chạy service này
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${PGDATABASE:?}
+      FLYWAY_USER: ${MIG_USER:?}
+      FLYWAY_PASSWORD: ${MIG_PASSWORD:?}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_CONNECT_RETRIES: 10
+    volumes:
+      - ../../../contract/migrations:/flyway/sql:ro   # đường dẫn tính từ vị trí compose file

@@ -26,6 +26,8 @@ jobs:
       PGHOST: 127.0.0.1
       PGPORT: "5432"
       PGUSER: postgres
+      MIG_USER: app_migrator
+      APP_USER: app_user
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -51,12 +53,13 @@ jobs:
       - name: Setup role (bootstrap + password)
         run: python dbsetup.py
 
+      - name: Migrate (Flyway)
+        run: python migrate.py
+
       - name: Chạy test
         env:
           ADMIN_USER: ${{ env.PGUSER }}
           ADMIN_PASSWORD: ${{ env.PGPASSWORD }}
-          APP_USER: app_user
-          MIG_USER: app_migrator
           APP_ENV: dev
         run: pytest -v
 
