@@ -7,3 +7,10 @@ BEGIN
     EXECUTE format('ALTER DATABASE %I SET row_security = on', current_database());
     EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM app_user', current_database());
 END $$;
+
+GRANT USAGE ON SCHEMA contract, service TO app_user;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA contract, service
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA contract, service
+  GRANT USAGE, SELECT ON SEQUENCES TO app_user;
