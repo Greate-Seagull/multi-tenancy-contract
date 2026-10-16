@@ -20,8 +20,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if not os.environ.get("MIG_PASSWORD"):
         sys.exit("thiếu MIG_PASSWORD")
-    cmd = ["docker", "compose", "-f", str(args.compose_file), "run", "--rm", "flyway", args.command]
-    return subprocess.run(cmd, check=False).returncode  # compose tự nội suy MIG_PASSWORD từ env
+
+    for schema in ("contract", "service"):
+        cmd = ["docker", "compose", "-f", str(args.compose_file), "run", "--rm",
+               "-e", f"FLYWAY_LOCATIONS=filesystem:/flyway/sql/{schema}",
+               "-e", f"FLYWAY_DEFAULT_SCHEMA={schema}",
+               "-e", f"FLYWAY_SCHEMAS={schema}",
+               "flyway", args.command]
+        rc = subprocess.run(cmd, check=False).returncode
+        if rc:
+            return rc
+
+    return 0
 
 
 if __name__ == "__main__":
