@@ -2,8 +2,9 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/contract/bootstrap/bootstrap.sql" dialect="GenericSQL" />
-    <file url="file://$PROJECT_DIR$/contract/migration-base/V1__create_tenant_contract.sql" dialect="GenericSQL" />
-    <file url="file://$PROJECT_DIR$/contract/migration-base/V2__roles_and_grants.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/contract/migration-base/V1__privileges.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/contract/migration-base/V2__create_tenant_contract.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/contract/migration-base/V3__grants.sql" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/test/py-version/tenant-isolation-tests/sql/fixture_schema.sql" dialect="GenericSQL" />
   </component>
 </project>

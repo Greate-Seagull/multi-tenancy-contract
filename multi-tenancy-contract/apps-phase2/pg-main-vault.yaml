@@ -1,0 +1,33 @@
+# Giai đoạn 2a: cấu hình phía Vault bằng VCO (mount PKI, PKI role, policy, auth role).
+#
+# Cố ý nằm NGOÀI thư mục apps/: Application gốc (root) chờ mọi Application con Healthy mới sang wave kế,
+# mà Application chưa từng sync thì không bao giờ Healthy, nên để trong apps/ sẽ chặn cả giai đoạn 1.
+# Áp bằng tay đúng một lần ở BOOTSTRAP.md bước 7:  kubectl apply -f apps-phase2/pg-main-vault.yaml
+# rồi bấm sync thủ công trong Argo CD (chỉ sau khi bước 1 đến 6 xong và values/pg-main.yaml đã có vault.caCert).
+#
+# Chạy trong namespace riêng pg-main-vault: ServiceAccount vault-config ở đây có quyền policy-admin,
+# nên namespace này không được chạy workload nào khác.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pg-main-vault
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      path: charts/pg-main-vault
+      helm:
+        releaseName: pg-main-vault
+        valueFiles:
+          - $values/values/pg-main.yaml
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pg-main-vault
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

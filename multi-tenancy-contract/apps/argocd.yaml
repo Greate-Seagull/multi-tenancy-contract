@@ -1,0 +1,31 @@
+# Argo CD tự quản lý chính nó: values lấy từ Git (values/argocd-values.yaml).
+# releaseName phải là "argocd" để khớp với lần helm install ban đầu.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 10.4.0
+      helm:
+        releaseName: argocd
+        valueFiles:
+          - $values/values/argocd-values.yaml
+    - repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false         # tự quản lý chính nó nên không tự xóa, tránh cấu hình sai làm mất Argo CD
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

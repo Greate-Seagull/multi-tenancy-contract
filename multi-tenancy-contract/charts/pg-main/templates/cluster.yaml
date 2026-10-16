@@ -1,0 +1,90 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-main
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    # Sau pki.yaml: Secret pg-main-replication-tls phải sẵn sàng trước khi pod Postgres khởi động
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 3
+  enableSuperuserAccess: false   # không sinh mật khẩu superuser
+  storage:
+    size: 10Gi
+    {{- with .Values.postgres.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app_owner # CNPG tạo role này, ta chuyển thành NOLOGIN ở dưới
+      # Chạy bằng postgres trong database "app", một lần duy nhất lúc khởi tạo
+
+  # Tin CA của Vault PKI cho client cert. Chỉ có ca.crt (không có khóa) nên CNPG không tự sinh được
+  # cert client, do đó phải cấp sẵn cert cho streaming_replica (xem pki.yaml).
+  certificates:
+    clientCASecret: pg-main-vault-client-ca
+    replicationTLSSecret: pg-main-replication-tls
+
+  postgresql:
+    parameters:
+      # PostgreSQL ghi lại identity (CN của cert) khi bật log_connections: truy ngược được job/pod
+      log_connections: "on"
+      log_disconnections: "on"
+    # Luật của người dùng nằm sau các luật cố định của CNPG và trước luật catch-all (scram-sha-256).
+    # Role không có mật khẩu nên catch-all không đăng nhập được.
+    pg_hba:
+      - hostssl app {{ keys .Values.roles | sortAlpha | join "," }} all cert map=certmap
+    pg_ident:
+      # Mỗi role chỉ nhận CN dạng <role>.<định-danh>, không dùng regex chung để tránh ánh xạ nhầm sang role khác
+      {{- range $role, $cfg := .Values.roles }}
+      - {{ printf "certmap /^%s\\.[A-Za-z0-9-]+$ %s" $role $role | quote }}
+      {{- end }}
+
+  # Operator đối chiếu định kỳ và sửa lệch thuộc tính, thành viên
+  managed:
+    roles:
+      - name: app_owner
+        ensure: present
+        comment: Chủ sở hữu đối tượng, không đăng nhập
+        login: false
+        superuser: false
+        bypassrls: false
+        createdb: false
+        createrole: false
+        replication: false
+        inherit: true
+        disablePassword: true
+      - name: app_migrator
+        comment: Chạy DDL/migration, chỉ từ pipeline triển khai
+        login: true
+        superuser: false
+        bypassrls: false
+        createdb: false
+        createrole: false
+        replication: false
+        inherit: true
+        connectionLimit: 2
+        inRoles: [ app_owner ]
+        disablePassword: true
+      - name: app_user
+        comment: Ứng dụng chạy DML/DQL thay mặt tenant
+        login: true
+        superuser: false
+        bypassrls: false
+        createdb: false
+        createrole: false
+        replication: false
+        inherit: true
+        connectionLimit: 20
+        inRoles: [ ]
+        disablePassword: true
+      {{- range $role, $cfg := .Values.roles }}
+      - name: {{ $role }}
+        ensure: present
+        {{- omit $cfg "hasPassword" "disablePassword" "passwordSecret" | toYaml | nindent 8 }}
+        # Xác thực bằng cert nên ép không có mật khẩu
+        disablePassword: true
+      {{- end }}

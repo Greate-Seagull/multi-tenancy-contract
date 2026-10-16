@@ -1,0 +1,84 @@
+# Values cho chart hashicorp/vault: HA 3 node (Raft), TLS bật, unseal thủ công (Shamir).
+# Được cài bằng Argo CD (apps/vault.yaml), không cần helm install tay.
+
+global:
+  enabled: true
+  tlsDisable: false          # bật TLS cho listener và probe
+
+# Không dùng Vault Agent injector (secret/cert do ESO và cert-manager lấy)
+injector:
+  enabled: false
+
+csi:
+  enabled: false
+
+ui:
+  enabled: true              # UI chỉ truy cập nội bộ, không expose ra ngoài
+
+server:
+  # Secret "vault-tls" (tls.crt, tls.key, ca.crt) phải có trước khi cài.
+  # SAN cần gồm: vault, vault.vault.svc, vault-active, *.vault-internal, 127.0.0.1
+  extraEnvironmentVars:
+    VAULT_CACERT: /vault/userconfig/vault-tls/ca.crt
+    VAULT_TLSCERT: /vault/userconfig/vault-tls/tls.crt
+    VAULT_TLSKEY: /vault/userconfig/vault-tls/tls.key
+  extraVolumes:
+    - type: secret
+      name: vault-tls
+
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    # storageClass: <điền StorageClass on-prem của bạn>
+
+  # Nơi ghi audit log (bật audit device ở bước bootstrap)
+  auditStorage:
+    enabled: true
+    size: 10Gi
+    # storageClass: <điền StorageClass on-prem của bạn>
+
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+
+  ha:
+    enabled: true
+    replicas: 3              # Raft cần số lẻ; chịu được mất 1 node
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable     = 0
+          address         = "[::]:8200"
+          cluster_address = "[::]:8201"
+          tls_cert_file   = "/vault/userconfig/vault-tls/tls.crt"
+          tls_key_file    = "/vault/userconfig/vault-tls/tls.key"
+        }
+
+        storage "raft" {
+          path = "/vault/data"
+
+          retry_join {
+            leader_api_addr     = "https://vault-0.vault-internal:8200"
+            leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+          }
+          retry_join {
+            leader_api_addr     = "https://vault-1.vault-internal:8200"
+            leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+          }
+          retry_join {
+            leader_api_addr     = "https://vault-2.vault-internal:8200"
+            leader_ca_cert_file = "/vault/userconfig/vault-tls/ca.crt"
+          }
+        }
+
+        # Không có khối "seal": unseal thủ công bằng Shamir key shares.
+        # Khi có Vault transit, thêm khối seal "transit" rồi chạy seal migration.
+
+        service_registration "kubernetes" {}

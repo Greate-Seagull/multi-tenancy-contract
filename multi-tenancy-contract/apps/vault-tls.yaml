@@ -1,0 +1,30 @@
+# CA nội bộ và cert TLS cho Vault (manifests/vault-tls/vault-tls.yaml). Chạy sau cert-manager.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault-tls
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Greate-Seagull/multi-tenancy-contract
+    targetRevision: master
+    path: manifests/vault-tls
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true   # CRD của cert-manager có thể chưa sẵn sàng lúc dry-run
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

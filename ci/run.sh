@@ -3,6 +3,14 @@
 set -euo pipefail
 NS=db
 
+CI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+CI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$CI_DIR/../multi-tenancy-contract"
+
+CHART_DIR="$ROOT/charts/pg-main"
+VALUES_FILE="$ROOT/values/pg-main.yaml"
+
 # 1. Operator (--wait để webhook sẵn sàng trước khi apply Cluster)
 helm repo add cnpg https://cloudnative-pg.github.io/charts
 helm upgrade --install cnpg cnpg/cloudnative-pg \
@@ -23,7 +31,7 @@ kubectl -n $NS create secret generic pg-main-replication-tls \
   --from-file=tls.crt=repl.crt --from-file=tls.key=repl.key --from-file=ca.crt
 
 # 3. Render + apply (instances=1 cho runner)
-helm template pg ../multi-tenancy-contract/charts/pg-main -n $NS -f ../multi-tenancy-contract/values/pg-main.yaml \
+helm template pg $CHART_DIR -n $NS -f $VALUES_FILE \
   --set postgres.instances=1 | kubectl -n $NS apply -f -
 
 # 4. Chờ bootstrap xong

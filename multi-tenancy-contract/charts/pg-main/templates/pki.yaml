@@ -1,0 +1,111 @@
+{{- if contains "<" (required "vault.caCert là bắt buộc" .Values.vault.caCert) }}
+{{- fail "vault.caCert vẫn còn chỗ trống <...>: dán CA của Vault vào values/pg-main.yaml" }}
+{{- end }}
+{{- if contains "<" (required "postgres.clientCaChain là bắt buộc" .Values.postgres.clientCaChain) }}
+{{- fail "postgres.clientCaChain vẫn còn chỗ trống <...>: dán chuỗi intermediate + root vào values/pg-main.yaml (BOOTSTRAP.md bước 7)" }}
+{{- end }}
+---
+# 1) CA công khai của Vault PKI (intermediate rồi root) để Postgres tin client cert.
+#    Chỉ chứa ca.crt, không có khóa riêng.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pg-main-vault-client-ca
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg.io/reload: ""   # CNPG tự nạp lại khi CA đổi (xoay CA)
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  ca.crt: |
+    {{- .Values.postgres.clientCaChain | trim | nindent 4 }}
+---
+# 2) ServiceAccount cho cert-manager đăng nhập Vault. Chỉ dùng để cert-manager xin token, không chạy pod.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pg-main-cert-manager
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+automountServiceAccountToken: false
+---
+# 3) Cho phép cert-manager (ServiceAccount cert-manager/cert-manager) tạo token cho ServiceAccount ở trên
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pg-main-cert-manager-token
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["pg-main-cert-manager"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pg-main-cert-manager-token
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pg-main-cert-manager-token
+subjects:
+  - kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+---
+# 4) Issuer của cert-manager, ký qua Vault PKI, xác thực với Vault bằng Kubernetes auth.
+#    Tên Issuer và namespace phải khớp audience của role pg-main-cert-manager (chart pg-main-vault).
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: pg-main-vault-issuer
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  vault:
+    server: {{ required "vault.address là bắt buộc" .Values.vault.address | quote }}
+    path: pki/pg/sign/replication
+    caBundle: {{ .Values.vault.caCert | b64enc | quote }}   # CA của chính server Vault (TLS)
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: pg-main-cert-manager
+        serviceAccountRef:
+          name: pg-main-cert-manager
+---
+# 5) Cert client cho streaming_replica, cert-manager tự gia hạn.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pg-main-replication
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  secretName: pg-main-replication-tls
+  secretTemplate:
+    labels:
+      cnpg.io/reload: ""   # CNPG nạp lại khi cert được gia hạn
+  commonName: streaming_replica
+  usages:
+    - digital signature
+    - client auth
+  duration: 720h
+  renewBefore: 240h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: pg-main-vault-issuer
+    kind: Issuer
+    group: cert-manager.io

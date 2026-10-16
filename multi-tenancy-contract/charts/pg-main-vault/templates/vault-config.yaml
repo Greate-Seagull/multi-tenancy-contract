@@ -1,0 +1,174 @@
+{{- $pgns := include "pgv.pgNamespace" . }}
+{{- if contains "<" (required "vault.caCert là bắt buộc" .Values.vault.caCert) }}
+{{- fail "vault.caCert vẫn còn chỗ trống <...>: dán CA của Vault vào values/pg-main.yaml (xem BOOTSTRAP.md bước 7)" }}
+{{- end }}
+---
+# ServiceAccount mà VCO dùng để đăng nhập Vault (role policy-admin, quyền cao).
+# Namespace này KHÔNG được chạy workload nào khác và nên khóa bằng RBAC.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-config
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+# CA của Vault, để operator VCO tin TLS của Vault (apps/vco.yaml mount ConfigMap này, VAULT_CACERT).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-ca
+  namespace: vault-config-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  ca.crt: |
+    {{- .Values.vault.caCert | trim | nindent 4 }}
+---
+# 1) Mount PKI cho Postgres. Đường dẫn cuối trong Vault: pki/pg (spec.path + metadata.name)
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: SecretEngineMount
+metadata:
+  name: pg
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  {{- include "pgv.auth" . | nindent 2 }}
+  type: pki
+  path: pki
+  config:
+    defaultLeaseTTL: 1h
+    maxLeaseTTL: 720h
+---
+# 2) PKI role cho cert replication (CN cố định streaming_replica), cert-manager ký qua role này
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: PKISecretEngineRole
+metadata:
+  name: replication
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" . | nindent 2 }}
+  path: pki/pg
+  allowedDomains:
+    - streaming_replica
+  allowBareDomains: true
+  allowSubdomains: false
+  enforceHostnames: false   # CN có dấu gạch dưới nên không phải hostname hợp lệ
+  clientFlag: true
+  serverFlag: false
+  keyType: ec
+  keyBits: 256
+  TTL: 720h
+  maxTTL: 720h
+---
+# 3) Policy cho cert-manager: chỉ được ký tại role replication
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Policy
+metadata:
+  name: pg-main-cert-manager
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" . | nindent 2 }}
+  type: acl
+  policy: |
+    path "pki/pg/sign/replication" {
+      capabilities = ["update"]
+    }
+---
+# 4) Kubernetes auth role cho cert-manager. Khớp với Issuer pg-main-vault-issuer trong chart pg-main:
+#    cert-manager đưa audience vault://<namespace>/<tên issuer> vào token, nên role ràng buộc đúng audience đó.
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: KubernetesAuthEngineRole
+metadata:
+  name: pg-main-cert-manager
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" . | nindent 2 }}
+  path: kubernetes
+  audience: vault://{{ $pgns }}/pg-main-vault-issuer
+  policies:
+    - pg-main-cert-manager
+  targetServiceAccounts:
+    - pg-main-cert-manager
+  targetNamespaces:
+    targetNamespaces:
+      - {{ $pgns }}
+  tokenTTL: 600
+  tokenMaxTTL: 600
+{{- /* 5) Mỗi role trong values.roles: PKI role (CN <role>.<định-danh>), policy, Kubernetes auth role */}}
+{{- range $role, $cfg := .Values.roles }}
+{{- $name := $role | replace "_" "-" }}
+{{- $acc := (index ($.Values.access | default dict) $role) | default dict }}
+{{- $sa := $acc.serviceAccount | default $name }}
+{{- $namespaces := $acc.namespaces | default (list $pgns) }}
+---
+# PKI role cho {{ $role }}: CN phải có dạng {{ $role }}.<định-danh> (pg_ident chỉ nhận [A-Za-z0-9-] sau dấu chấm)
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: PKISecretEngineRole
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" $ | nindent 2 }}
+  path: pki/pg
+  allowedDomains:
+    - {{ $role }}.*
+  allowGlobDomains: true
+  allowBareDomains: false
+  allowSubdomains: false
+  enforceHostnames: false
+  clientFlag: true
+  serverFlag: false
+  keyType: ec
+  keyBits: 256
+  TTL: 1h
+  maxTTL: 4h
+---
+# Policy: chỉ được xin cert đúng role của chính nó
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Policy
+metadata:
+  name: pg-main-issue-{{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" $ | nindent 2 }}
+  type: acl
+  policy: |
+    path "pki/pg/issue/{{ $name }}" {
+      capabilities = ["update"]
+    }
+---
+# Kubernetes auth role: ServiceAccount "{{ $sa }}" trong namespace {{ $namespaces | join ", " }} được xin cert cho {{ $role }}
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: KubernetesAuthEngineRole
+metadata:
+  name: pg-main-{{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  {{- include "pgv.auth" $ | nindent 2 }}
+  path: kubernetes
+  policies:
+    - pg-main-issue-{{ $name }}
+  targetServiceAccounts:
+    - {{ $sa }}
+  targetNamespaces:
+    targetNamespaces:
+      {{- range $namespaces }}
+      - {{ . }}
+      {{- end }}
+  tokenTTL: 3600
+  tokenMaxTTL: 3600
+{{- end }}

@@ -1,0 +1,36 @@
+# Values dùng chung cho cả hai chart: charts/pg-main-vault và charts/pg-main (mỗi chart chỉ đọc phần nó cần).
+# Toàn bộ nội dung ở đây là thông tin công khai, không có bí mật nào.
+# Chart từ chối render nếu còn chỗ trống dạng <...>, để không lỡ sync thiếu CA.
+
+vault:
+  address: https://vault.vault.svc:8200
+  # CA của chính server Vault (TLS), lấy sau khi vault-tls Ready:
+  #   kubectl get secret vault-ca -n vault -o jsonpath='{.data.tls\.crt}' | base64 -d
+  caCert: |
+    -----BEGIN CERTIFICATE-----
+    <dán cert CA của Vault vào đây>
+    -----END CERTIFICATE-----
+
+postgres:
+  namespace: pg-main
+  # storageClass: <StorageClass on-prem của bạn>
+  # Chuỗi CA của pki/pg để Postgres xác minh client cert: intermediate rồi root (đủ cả hai).
+  # Chỉ điền được sau khi ký intermediate (BOOTSTRAP.md bước 7).
+  clientCaChain: |
+    -----BEGIN CERTIFICATE-----
+    <intermediate>
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    <root>
+    -----END CERTIFICATE-----
+
+# Mỗi role: CNPG tạo role (không password), Vault cấp cert theo CN <role>.<định-danh>
+# Chỉ để các trường của CNPG managed.roles ở đây (chart đưa nguyên xi vào Cluster).
+roles:
+  # Thêm role cho từng service tương tự, ví dụ:
+  # orders_app:
+  #   comment: Runtime của service orders
+  #   login: true
+  #   inherit: true
+  #   connectionLimit: 20
+  #   inRoles: [orders_rw]   # role nhóm có quyền DML, khai báo riêng

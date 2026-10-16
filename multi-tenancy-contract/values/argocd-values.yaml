@@ -1,0 +1,79 @@
+#Đây là file values cho chart Helm `argo/argo-cd` (bước 1 trong thứ tự bootstrap vừa nói), và sau đó Argo CD dùng chính file này để tự quản lý mình:
+#
+#- **Cài đặt**: chạy `helm install` thủ công một lần (chart version 10.4.0). Sau đó `apps/argocd.yaml` trỏ lại file values này nên Git trở thành nguồn sự thật.
+#- **Tắt Dex** (`dex.enabled: false`): chưa có SSO nên không chạy thành phần này, giảm bề mặt tấn công. Bật lại khi cấu hình SSO.
+#- **Tắt notifications**: không dùng thông báo ra ngoài.
+#- **TLS và truy cập** (`server.insecure: false`, `service.type: ClusterIP`): `argocd-server` tự phục vụ TLS, không expose ra ngoài mà chỉ truy cập nội bộ bằng port-forward.
+#- **Tài khoản admin cục bộ** (`admin.enabled: "true"`): giữ tạm cho đến khi có SSO, sau đó nên tắt.
+#- **Tắt web terminal** (`exec.enabled: "false"`): không cho vào shell pod từ UI. Mặc định đã tắt, ghi rõ để tránh bị bật nhầm.
+#- **Health check tùy chỉnh cho `Application`**: Lua script lấy trạng thái health của Application con và báo lên Application cha, để app-of-apps biết con nào chưa Healthy (cần cho sync wave chờ đúng).
+#- **RBAC** (`policy.default: ""`): người dùng không khớp policy nào thì không có quyền gì (deny mặc định).
+#- **Giới hạn tài nguyên** cho server, repo-server, controller, applicationSet và redis: có `requests` và `limits` memory (controller lớn nhất, 512Mi request / 1Gi limit), không đặt limit CPU.
+
+# Values cho chart argo/argo-cd (argo-helm).
+# Cài tay một lần:
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd -n argocd --create-namespace --version 10.4.0 -f values/argocd-values.yaml
+# Sau đó Argo CD tự quản lý chính nó từ Git bằng chính file values này (xem apps/argocd.yaml).
+
+# Chưa có SSO nên tắt Dex để giảm bề mặt tấn công; bật lại khi cấu hình SSO.
+dex:
+  enabled: false
+
+# Không dùng thông báo ngoài
+notifications:
+  enabled: false
+
+configs:
+  params:
+    # TLS do chính argocd-server phục vụ; truy cập nội bộ bằng port-forward, không expose ra ngoài
+    server.insecure: false
+  cm:
+    # Tài khoản admin cục bộ giữ lại cho đến khi có SSO; sau đó đặt admin.enabled: "false"
+    admin.enabled: "true"
+    # Tắt web terminal vào pod (mặc định đã tắt, ghi rõ để không bị bật nhầm)
+    exec.enabled: "false"
+    # Để sync wave của app-of-apps chờ đúng khi một Application con chưa Healthy
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+  rbac:
+    # Người dùng không khớp policy nào thì không có quyền gì
+    policy.default: ""
+
+server:
+  service:
+    type: ClusterIP          # không dùng LoadBalancer/NodePort
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+repoServer:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 512Mi }
+
+controller:
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+
+applicationSet:
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+
+redis:
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
