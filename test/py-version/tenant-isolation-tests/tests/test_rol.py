@@ -45,7 +45,7 @@ def _migrator_dsn(settings) -> str | None:
     return getattr(settings, "migrator_dsn", None) or os.environ.get("APP_MIGRATOR_DSN")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def rol_conn(settings):
     """Kết nối app_user (autocommit) chỉ để đọc catalog; KHÔNG dựng schema mẫu."""
     conn = psycopg.connect(settings.app_dsn, autocommit=True, application_name="tbl-isolation-tests")
@@ -55,7 +55,7 @@ def rol_conn(settings):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def admin_rol_conn(settings):
     """Kết nối ADMIN (autocommit) cho các kiểm tra cần đọc pg_authid / pg_hba_file_rules."""
     conn = psycopg.connect(settings.admin_dsn, autocommit=True, application_name="tbl-isolation-tests")
@@ -64,7 +64,7 @@ def admin_rol_conn(settings):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def role_names(settings, rol_conn) -> dict:
     dsn = _migrator_dsn(settings)
     migrator = (os.environ.get("MIG_USER")
@@ -79,7 +79,7 @@ def role_names(settings, rol_conn) -> dict:
     return names
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def rol_migrator_conn(schema, settings):
     """Kết nối app_migrator (không autocommit) cho ROL-12; cần schema mẫu. Thiếu DSN -> skip."""
     dsn = _migrator_dsn(settings)

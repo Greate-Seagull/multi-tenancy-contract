@@ -45,7 +45,7 @@ def _migrator_dsn(settings) -> str | None:
     return getattr(settings, "migrator_dsn", None) or os.environ.get("APP_MIGRATOR_DSN")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def cfg_conn(settings):
     """Kết nối app_user (autocommit). Câu lệnh thử luôn đi qua txn() để ROLLBACK."""
     conn = psycopg.connect(settings.app_dsn, autocommit=True, application_name="tbl-isolation-tests")
@@ -55,7 +55,7 @@ def cfg_conn(settings):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def cfg_migrator_conn(settings):
     dsn = _migrator_dsn(settings)
     if not dsn:
@@ -66,7 +66,7 @@ def cfg_migrator_conn(settings):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def admin_pid(settings):
     """PID của một phiên ADMIN đang rảnh – làm đích cho thử pg_cancel_backend."""
     conn = psycopg.connect(settings.admin_dsn, autocommit=True, application_name="tbl-isolation-tests")
@@ -74,7 +74,7 @@ def admin_pid(settings):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def role_names(settings, cfg_conn) -> dict:
     dsn = _migrator_dsn(settings)
     migrator = (os.environ.get("MIG_USER")
@@ -85,7 +85,7 @@ def role_names(settings, cfg_conn) -> dict:
     return names
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def app_schemas(cfg_conn, settings) -> list[str]:
     configured = [s.strip() for s in os.environ.get("APP_SCHEMAS", "").split(",") if s.strip()]
     if configured:

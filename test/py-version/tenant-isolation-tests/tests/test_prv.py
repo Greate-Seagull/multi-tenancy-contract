@@ -105,7 +105,7 @@ def assert_app_user_denied(app_conn, schema, settings, statement: str):
         s.expect_denied(statement.format(s=schema, owner=settings.owner_role))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def migrator_conn(schema, settings):
     dsn = settings.migrator_dsn
     if not dsn:
