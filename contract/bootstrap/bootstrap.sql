@@ -16,5 +16,12 @@ GRANT app_owner TO app_migrator;
 
 -- app_user: không là thành viên role nào, ép RLS luôn bật
 ALTER ROLE app_user SET row_security = on;
-REVOKE app_owner FROM app_user;
-REVOKE app_owner FROM app_user;
+
+DO $$
+BEGIN
+    -- Database: thu quyền mặc định của PUBLIC (gồm CONNECT, TEMP), chỉ cấp CONNECT cho role cần
+    EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO app_migrator, app_user', current_database());
+    -- Ép RLS luôn bật cho mọi phiên của database này
+    EXECUTE format('ALTER DATABASE %I SET row_security = on', current_database());
+END $$;
