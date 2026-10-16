@@ -29,7 +29,7 @@ services:
       retries: 15
     volumes:
       - ../../../contract/bootstrap/bootstrap.sql:/docker-entrypoint-initdb.d/00-bootstrap.sql:ro
-      - ../../test/resources/01-test-passwords.sql:/docker-entrypoint-initdb.d/01-test-passwords.sql:ro
+      - ../../resources/01-test-passwords.sql:/docker-entrypoint-initdb.d/01-test-passwords.sql:ro
 
   flyway-contract:
     <<: *flyway
