@@ -60,4 +60,7 @@ jobs:
 
       - name: Log Postgres khi fail
         if: failure()
-        run: docker compose logs postgres
+        run: docker compose logs postgres &&
+          docker compose exec postgres psql -U postgres -d test -c \
+          "SELECT rolconnlimit FROM pg_roles WHERE rolname='app_migrator';" -c \
+          "SELECT pid, state, backend_start, left(query,50) FROM pg_stat_activity WHERE usename='app_migrator';"
