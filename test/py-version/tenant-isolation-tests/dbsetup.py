@@ -11,7 +11,7 @@ Muốn reset sạch: `docker compose down -v` rồi dựng lại.
 
 Mật khẩu nhận qua flag hoặc env (ưu tiên env trên CI để không lộ trong `ps`/log):
   Admin: biến libpq chuẩn PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE (hoặc --admin-dsn)
-  --migrator-password / MIGRATOR_PASSWORD
+  --migrator-password / MIG_PASSWORD
   --user-password     / APP_PASSWORD
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     # Rỗng = psycopg tự đọc PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE từ env
     p.add_argument("--admin-dsn", default="")
-    p.add_argument("--migrator-password", default=os.environ.get("MIGRATOR_PASSWORD"))
+    p.add_argument("--migrator-password", default=os.environ.get("MIG_PASSWORD"))
     p.add_argument("--user-password", default=os.environ.get("APP_PASSWORD"))
     p.add_argument(
         "--bootstrap-sql",
@@ -55,7 +55,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     missing = [
         flag
         for flag, val in (
-            ("--migrator-password / MIGRATOR_PASSWORD", args.migrator_password),
+            ("--migrator-password / MIG_PASSWORD", args.MIG_PASSWORD),
             ("--user-password / APP_PASSWORD", args.user_password),
         )
         if not val
@@ -123,9 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     with connect_admin(args.admin_dsn, args.wait) as conn:
         run_bootstrap(conn, args.bootstrap_sql)
-        set_password(conn, MIGRATOR, args.migrator_password)
+        set_password(conn, MIGRATOR, args.MIG_PASSWORD)
         set_password(conn, USER, args.user_password)
-    check_login(args.admin_dsn, MIGRATOR, args.migrator_password)
+    check_login(args.admin_dsn, MIGRATOR, args.MIG_PASSWORD)
     check_login(args.admin_dsn, USER, args.user_password)
     return 0
 

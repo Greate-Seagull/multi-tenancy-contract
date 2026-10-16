@@ -57,6 +57,7 @@ jobs:
           ADMIN_PASSWORD: ${{ env.PGPASSWORD }}
           APP_USER: app_user
           MIG_USER: app_migrator
+          APP_ENV: dev
         run: pytest -v
 
       - name: Log Postgres khi fail
