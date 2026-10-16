@@ -1,0 +1,16 @@
+services:
+  postgres:
+    # Đặt PG_VERSION trùng major version của CNPG trên prod
+    image: postgres:${PG_VERSION:-18-bookworm}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD:-root}
+      POSTGRES_DB: ${PG_DB:-test}
+    ports:
+      # 5433 để không đụng Postgres cài sẵn trên máy
+      - "127.0.0.1:${PG_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${PG_DB:-testdb}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
