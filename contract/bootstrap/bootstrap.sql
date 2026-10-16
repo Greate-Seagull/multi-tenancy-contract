@@ -1,7 +1,7 @@
 -- Chạy bằng postgres (superuser). Chạy lại nhiều lần vẫn an toàn.
-CREATE ROLE IF NOT EXISTS app_owner
-CREATE ROLE IF NOT EXISTS app_migrator
-CREATE ROLE IF NOT EXISTS app_user
+CREATE ROLE app_owner
+CREATE ROLE app_migrator
+CREATE ROLE app_user
 
 -- Đồng bộ thuộc tính (role đã tồn tại từ trước vẫn bị đưa về đúng chuẩn)
 ALTER ROLE app_owner NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION INHERIT
