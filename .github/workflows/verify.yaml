@@ -37,7 +37,7 @@ jobs:
 
       - name: Sinh password cho role
         run: |
-          for v in APP_MIGRATOR_PASSWORD APP_USER_PASSWORD; do
+          for v in PGPASSWORD APP_MIGRATOR_PASSWORD APP_USER_PASSWORD; do
             pw=$(openssl rand -hex 16)
             echo "::add-mask::$pw"
             echo "$v=$pw" >> "$GITHUB_ENV"
