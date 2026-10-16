@@ -23,7 +23,7 @@ kubectl -n $NS create secret generic pg-main-replication-tls \
   --from-file=tls.crt=repl.crt --from-file=tls.key=repl.key --from-file=ca.crt
 
 # 3. Render + apply (instances=1 cho runner)
-helm template pg ./chart -n $NS -f values.yaml \
+helm template pg ./multi-tenancy-contract/charts/pg-main -n $NS -f ./multi-tenancy-contract/values/pg-main.yaml \
   --set postgres.instances=1 | kubectl -n $NS apply -f -
 
 # 4. Chờ bootstrap xong
