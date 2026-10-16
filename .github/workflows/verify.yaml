@@ -61,5 +61,5 @@ jobs:
       - name: Log Postgres khi fail
         if: failure()
         run: docker compose logs postgres &&
-          docker compose exec -e PGPASSWORD postgres psql -U postgres -d test \
-          -c "SELECT datacl, pg_get_userbyid(datdba) FROM pg_database WHERE datname=current_database();"
+          docker compose exec -e PGPASSWORD postgres psql -U postgres -d test -c \
+           "SELECT datacl, pg_get_userbyid(datdba) FROM pg_database WHERE datname=current_database();"
