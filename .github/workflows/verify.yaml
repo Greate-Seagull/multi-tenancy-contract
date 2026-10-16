@@ -53,8 +53,8 @@ jobs:
 
       - name: Chạy test
         env:
-          ADMIN_USER=${{ env.PGUSER }}
-          ADMIN_PASSWORD=${{ env.PGPASSWORD }}
+          ADMIN_USER: ${{ env.PGUSER }}
+          ADMIN_PASSWORD: ${{ env.PGPASSWORD }}
         run: pytest -v
 
       - name: Log Postgres khi fail
