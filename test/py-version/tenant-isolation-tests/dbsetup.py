@@ -55,7 +55,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     missing = [
         flag
         for flag, val in (
-            ("--migrator-password / MIG_PASSWORD", args.MIG_PASSWORD),
+            ("--migrator-password / MIG_PASSWORD", args.migrator_password),
             ("--user-password / APP_PASSWORD", args.user_password),
         )
         if not val
@@ -123,9 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     with connect_admin(args.admin_dsn, args.wait) as conn:
         run_bootstrap(conn, args.bootstrap_sql)
-        set_password(conn, MIGRATOR, args.MIG_PASSWORD)
+        set_password(conn, MIGRATOR, args.migrator_password)
         set_password(conn, USER, args.user_password)
-    check_login(args.admin_dsn, MIGRATOR, args.MIG_PASSWORD)
+    check_login(args.admin_dsn, MIGRATOR, args.migrator_password)
     check_login(args.admin_dsn, USER, args.user_password)
     return 0
 
