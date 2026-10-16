@@ -37,7 +37,7 @@ USER = "app_user"
 ALL_ROLES = {OWNER, MIGRATOR, USER}
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:test
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
