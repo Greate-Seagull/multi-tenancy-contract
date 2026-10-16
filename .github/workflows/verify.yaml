@@ -22,6 +22,8 @@ jobs:
         working-directory: test/py-version/tenant-isolation-tests
     env:
       PG_VERSION: "18-bookworm"
+      PGDATABASE: test
+      PGUSER: postgres
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -48,6 +50,9 @@ jobs:
         run: python dbsetup.py
 
       - name: Chạy test
+        env:
+          ADMIN_USER=${{ env.PGUSER }}
+          ADMIN_PASSWORD=${{ env.PGPASSWORD }}
         run: pytest -v
 
       - name: Log Postgres khi fail

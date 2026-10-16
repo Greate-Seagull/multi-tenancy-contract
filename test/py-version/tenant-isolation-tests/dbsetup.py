@@ -10,7 +10,7 @@ Idempotent: role đã có thì bỏ qua bootstrap, chỉ đặt lại password.
 Muốn reset sạch: `docker compose down -v` rồi dựng lại.
 
 Mật khẩu nhận qua flag hoặc env (ưu tiên env trên CI để không lộ trong `ps`/log):
-  --admin-dsn         / PG_ADMIN_DSN
+  Admin: biến libpq chuẩn PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE (hoặc --admin-dsn)
   --migrator-password / APP_MIGRATOR_PASSWORD
   --user-password     / APP_USER_PASSWORD
 """
@@ -29,7 +29,6 @@ from psycopg.conninfo import make_conninfo
 HERE = Path(__file__).resolve().parent
 # Giả định: test/py-version/tenant-isolation-tests/dbsetup.py, bootstrap ở test/deploy/bootstrap.sql
 DEFAULT_BOOTSTRAP = HERE.parents[2] / "contract" / "bootstrap" / "bootstrap.sql"
-DEFAULT_ADMIN_DSN = "postgresql://postgres:postgres@127.0.0.1:5433/test"  # khớp docker-compose.yml
 
 OWNER = "app_owner"  # NOLOGIN, không đặt password
 MIGRATOR = "app_migrator"
@@ -37,11 +36,12 @@ USER = "app_user"
 ALL_ROLES = {OWNER, MIGRATOR, USER}
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:test
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("--admin-dsn", default=os.environ.get("PG_ADMIN_DSN", DEFAULT_ADMIN_DSN))
+    # Rỗng = psycopg tự đọc PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE từ env
+    p.add_argument("--admin-dsn", default="")
     p.add_argument("--migrator-password", default=os.environ.get("APP_MIGRATOR_PASSWORD"))
     p.add_argument("--user-password", default=os.environ.get("APP_USER_PASSWORD"))
     p.add_argument(
