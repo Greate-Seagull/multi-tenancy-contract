@@ -11,8 +11,8 @@ Muốn reset sạch: `docker compose down -v` rồi dựng lại.
 
 Mật khẩu nhận qua flag hoặc env (ưu tiên env trên CI để không lộ trong `ps`/log):
   Admin: biến libpq chuẩn PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE (hoặc --admin-dsn)
-  --migrator-password / APP_MIGRATOR_PASSWORD
-  --user-password     / APP_USER_PASSWORD
+  --migrator-password / MIGRATOR_PASSWORD
+  --user-password     / APP_PASSWORD
 """
 from __future__ import annotations
 
@@ -42,8 +42,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     # Rỗng = psycopg tự đọc PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE từ env
     p.add_argument("--admin-dsn", default="")
-    p.add_argument("--migrator-password", default=os.environ.get("APP_MIGRATOR_PASSWORD"))
-    p.add_argument("--user-password", default=os.environ.get("APP_USER_PASSWORD"))
+    p.add_argument("--migrator-password", default=os.environ.get("MIGRATOR_PASSWORD"))
+    p.add_argument("--user-password", default=os.environ.get("APP_PASSWORD"))
     p.add_argument(
         "--bootstrap-sql",
         type=Path,
@@ -55,8 +55,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     missing = [
         flag
         for flag, val in (
-            ("--migrator-password / APP_MIGRATOR_PASSWORD", args.migrator_password),
-            ("--user-password / APP_USER_PASSWORD", args.user_password),
+            ("--migrator-password / MIGRATOR_PASSWORD", args.migrator_password),
+            ("--user-password / APP_PASSWORD", args.user_password),
         )
         if not val
     ]
