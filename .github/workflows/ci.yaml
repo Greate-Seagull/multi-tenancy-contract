@@ -112,7 +112,7 @@ jobs:
         run: kind load docker-image "$BOOT_IMAGE" "$SERVICE_IMAGE" "$CONTRACT_TEST_IMAGE" --name test
 
       # Cài helm + helmfile đúng phiên bản khai báo trong mise.toml (cùng file dùng khi chạy trên máy)
-      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
 
       - name: Test deploy
         run: ./test/run.sh
